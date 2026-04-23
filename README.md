@@ -6,7 +6,7 @@ Für die wissenschaftliche Vertiefung werden insgesamt 360 Stunden aufgewendet. 
 
 | Woche | Montag | Dienstag | Mittwoch | Donnerstag | Freitag | Samstag | Sonntag |
 |  :--- |  :---  |   :---   |    :---  |     :---   |   :---  |   :---  |   :---  |
-|   1   |   [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
+|   1   |   - [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
 |   2   |   [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
 |   3   |   [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
 |   4   |   [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
