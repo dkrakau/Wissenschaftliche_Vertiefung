@@ -1,32 +1,40 @@
 # Wissenschaftliche Vertiefung
 
-## Zeitplan
+## Arbeitsthema
+
+Diese Arbeit befasst sich zu nächst mit 
+
+## Dokumentation der Arbeitsnachweise
+
+Die Arbeitsnachweise werden wie folgt dokumentiert:
+
+## Zeitlicher Rahmen
 
 Für die wissenschaftliche Vertiefung werden insgesamt 360 Stunden aufgewendet. Der zeitliche Rahmen wird wie folgt aufgeteilt: 6 Stunden am Tag (Mo. - Fr.), 30 Stunden pro Woche.
 
 ### 27. April bis 24. Mai 2026
-Woche | Mo | Di | Mi | Do | Fr | Sa | So |
-------|----|----|----|----|----|----|----|
-1     | 27 | 28 | 29 | 30 | 01 | 02 | 03 |
-2     | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
-3     | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
-4     | 18 | 19 | 20 | 21 | 22 | 23 | 24 |
+KW | Mo | Di | Mi | Do | Fr | Sa | So |
+---|----|----|----|----|----|----|----|
+18 | 27 | 28 | 29 | 30 | 01 | 02 | 03 |
+19 | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
+20 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
+21 | 18 | 19 | 20 | 21 | 22 | 23 | 24 |
 
 ### 25. Mai bis 21. Juni 2026
-Woche | Mo | Di | Mi | Do | Fr | Sa | So |
-------|----|----|----|----|----|----|----|
-5     | 25 | 26 | 27 | 28 | 29 | 30 | 31 |
-6     | 01 | 02 | 03 | 04 | 05 | 06 | 07 |
-7     | 08 | 09 | 10 | 11 | 12 | 13 | 14 |
-8     | 15 | 16 | 17 | 18 | 19 | 20 | 21 |
+KW | Mo | Di | Mi | Do | Fr | Sa | So |
+---|----|----|----|----|----|----|----|
+22 | 25 | 26 | 27 | 28 | 29 | 30 | 31 |
+23 | 01 | 02 | 03 | 04 | 05 | 06 | 07 |
+24 | 08 | 09 | 10 | 11 | 12 | 13 | 14 |
+25 | 15 | 16 | 17 | 18 | 19 | 20 | 21 |
 
 ### 22. Juni bis 19. Juli 2026
-Woche | Mo | Di | Mi | Do | Fr | Sa | So |
-------|----|----|----|----|----|----|----|
-9     | 22 | 23 | 24 | 25 | 26 | 27 | 28 |
-10    | 29 | 30 | 01 | 02 | 03 | 04 | 05 |
-11    | 06 | 07 | 08 | 09 | 10 | 11 | 12 |
-12    | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
+KW | Mo | Di | Mi | Do | Fr | Sa | So |
+---|----|----|----|----|----|----|----|
+26 | 22 | 23 | 24 | 25 | 26 | 27 | 28 |
+27 | 29 | 30 | 01 | 02 | 03 | 04 | 05 |
+28 | 06 | 07 | 08 | 09 | 10 | 11 | 12 |
+29 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
 
  <!-- This content will not appear in the rendered Markdown
 # A first-level heading
