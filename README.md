@@ -1,12 +1,12 @@
 # Wissenschaftliche Vertiefung
 
-## Arbeitsthema
+## Aktueller Meilenstein 05.05.
 
-Diese Arbeit befasst sich zu nächst mit 
+* Recherche zum Thema Vektordatenbanken.
 
-## Dokumentation der Arbeitsnachweise
+## Protokollierung der Arbeitszeit
 
-Die Arbeitsnachweise werden wie folgt dokumentiert:
+Die Arbeitszeit wird durch Meilensteine und Issues protokolliert.
 
 ## Zeitlicher Rahmen
 
@@ -15,7 +15,7 @@ Für die wissenschaftliche Vertiefung werden insgesamt 360 Stunden aufgewendet. 
 ### 27. April bis 24. Mai 2026
 KW | Mo | Di | Mi | Do | Fr | Sa | So |
 ---|----|----|----|----|----|----|----|
-18 | 27 | 28 | 29 | 30 | 01 | 02 | 03 |
+18 | 27.04. | 28.04. | 29.04. | 30.04. | 01.05. | 02.05. | 03.05. |
 19 | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
 20 | 11 | 12 | 13 | 14 | 15 | 16 | 17 |
 21 | 18 | 19 | 20 | 21 | 22 | 23 | 24 |
