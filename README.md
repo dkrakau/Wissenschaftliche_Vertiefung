@@ -1,1 +1,1 @@
-# Wissenschaftliche_Vertiefung
+# Wissenschaftliche Vertiefung
