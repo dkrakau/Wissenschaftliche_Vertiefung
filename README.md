@@ -1,6 +1,5 @@
 # Wissenschaftliche Vertiefung
 
-<<<<<<< HEAD
 ## Zeitplan
 
 Für die wissenschaftliche Vertiefung werden insgesamt 360 Stunden aufgewendet. Der zeitliche Rahmen wird wie folgt aufgeteilt: 6 Stunden am Tag (Mo. - Fr.), 30 Stunden pro Woche.
@@ -26,8 +25,6 @@ Für die wissenschaftliche Vertiefung werden insgesamt 360 Stunden aufgewendet. 
 |  11   |   [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
 |  12   |   [ ]  |    [ ]   |    [ ]   |     [ ]    |   [ ]   |   [ ]   |   [ ]   |
 
-=======
->>>>>>> origin/main
  <!-- This content will not appear in the rendered Markdown
 # A first-level heading
 ## A second-level heading
