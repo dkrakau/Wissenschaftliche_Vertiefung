@@ -1,6 +1,6 @@
 # Wissenschaftliche Vertiefung
 
-## Aktueller Meilenstein 05.05.
+## Aktueller Meilenstein bis zum 05.05.
 
 * Recherche zum Thema Vektordatenbanken.
 
