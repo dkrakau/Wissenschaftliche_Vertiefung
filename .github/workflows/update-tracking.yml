@@ -22,38 +22,55 @@ jobs:
             const issue = context.payload.issue;
             const body = issue.body || "";
 
-            // Extract the "Tasks" section from the issue form body
-            const tasksSectionMatch = body.match(/### Tasks\s*\n+([\s\S]*?)(?:\n### |$)/i);
-            if (!tasksSectionMatch) {
-              console.log("No Tasks section found, aborting.");
-              return;
+            const CATEGORY_ORDER = ["organisation", "meeting", "development", "research", "writing"];
+
+            function categoryLabel(cat) {
+              return cat.charAt(0).toUpperCase() + cat.slice(1);
             }
 
-            // Parse each "- description | hours" line
-            const lines = tasksSectionMatch[1].split("\n");
-            const tasks = [];
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith("-")) continue;
-              const content = trimmed.replace(/^-\s*/, "");
-              const parts = content.split("|");
-              if (parts.length < 2) continue;
-              const description = parts[0].trim();
-              const hours = parseFloat(parts[1].trim().replace(",", "."));
-              if (isNaN(hours)) continue;
-              tasks.push({ description, hours });
+            function sortCategories(keys) {
+              const known = CATEGORY_ORDER.filter(c => keys.includes(c));
+              const unknown = keys.filter(c => !CATEGORY_ORDER.includes(c)).sort();
+              return [...known, ...unknown];
             }
 
+            function buildCategorySection(categoryTotals) {
+              const keys = sortCategories(Object.keys(categoryTotals));
+              const lines = keys.map(c => `- ${categoryLabel(c)}: ${categoryTotals[c]} h`);
+              return `### Category Totals\n${lines.join("\n")}\n`;
+            }
+
+            function parseTasks(text) {
+              const match = (text || "").match(/### Tasks\s*\n+([\s\S]*?)(?=\n### |$)/i);
+              if (!match) return [];
+              const lines = match[1].split("\n");
+              const tasks = [];
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith("-")) continue;
+                const content = trimmed.replace(/^-\s*/, "");
+                const parts = content.split("|").map(p => p.trim());
+                if (parts.length < 2) continue;
+                const description = parts[0];
+                const hours = parseFloat(parts[parts.length - 1].replace(",", "."));
+                if (isNaN(hours)) continue;
+                const category = parts.length >= 3 ? parts[1].toLowerCase() : "uncategorized";
+                tasks.push({ description, category, hours });
+              }
+              return tasks;
+            }
+
+            const tasks = parseTasks(body);
             if (tasks.length === 0) {
               console.log("No valid task lines found, aborting.");
               return;
             }
 
             const issueTotal = tasks.reduce((sum, t) => sum + t.hours, 0);
-
-            // Extract the date field, fall back to the issue creation date
-            const dateMatch = body.match(/### Date\s*\n+(.+)/i);
-            const dateStr = dateMatch ? dateMatch[1].trim() : issue.created_at.split("T")[0];
+            const issueCategoryTotals = {};
+            for (const t of tasks) {
+              issueCategoryTotals[t.category] = (issueCategoryTotals[t.category] || 0) + t.hours;
+            }
 
             const trackingTitle = "📊 Time Tracking Overview";
 
@@ -66,17 +83,11 @@ jobs:
 
             let trackingIssue = openIssues.data.find(i => i.title === trackingTitle);
 
-            const taskLines = tasks
-              .map(t => `  - ${t.description} — **${t.hours} h**`)
-              .join("\n");
-            const newEntry =
-              `- [#${issue.number}](${issue.html_url}) – ${dateStr} — **${issueTotal} h total**\n${taskLines}`;
-
             if (!trackingIssue) {
               const newBody =
                 `## Overall Time Tracking\n\n` +
                 `**Total: ${issueTotal} h**\n\n` +
-                `### Entries\n${newEntry}\n`;
+                buildCategorySection(issueCategoryTotals);
 
               await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -96,6 +107,7 @@ jobs:
             }
 
             const oldBody = trackingIssue.body || "";
+
             const totalMatch = oldBody.match(/\*\*Total:\s*([\d.,]+)\s*h\*\*/);
             const oldTotal = totalMatch ? parseFloat(totalMatch[1].replace(",", ".")) : 0;
             const newTotal = oldTotal + issueTotal;
@@ -104,7 +116,31 @@ jobs:
               /\*\*Total:\s*[\d.,]+\s*h\*\*/,
               `**Total: ${newTotal} h**`
             );
-            updatedBody += `\n${newEntry}`;
+
+            // Merge this issue's category hours into the tracking issue's running totals
+            const categorySectionMatch = oldBody.match(/### Category Totals\s*\n+([\s\S]*?)(?=\n### |$)/i);
+            const categoryTotals = {};
+            if (categorySectionMatch) {
+              const lines = categorySectionMatch[1].split("\n");
+              for (const line of lines) {
+                const m = line.trim().match(/^-\s*(.+):\s*([\d.,]+)\s*h$/i);
+                if (m) categoryTotals[m[1].toLowerCase()] = parseFloat(m[2].replace(",", "."));
+              }
+            }
+            for (const [cat, hrs] of Object.entries(issueCategoryTotals)) {
+              categoryTotals[cat] = (categoryTotals[cat] || 0) + hrs;
+            }
+            const newCategorySection = buildCategorySection(categoryTotals);
+
+            if (categorySectionMatch) {
+              updatedBody = updatedBody.replace(categorySectionMatch[0], newCategorySection);
+            } else {
+              // Tracking issue predates categories - insert the section right after the Total line
+              updatedBody = updatedBody.replace(
+                /(\*\*Total:\s*[\d.,]+\s*h\*\*\n)/,
+                `$1\n${newCategorySection}`
+              );
+            }
 
             await github.rest.issues.update({
               owner: context.repo.owner,

@@ -38,9 +38,11 @@ jobs:
               const trimmed = line.trim();
               if (!trimmed.startsWith("-")) continue;
               const content = trimmed.replace(/^-\s*/, "");
-              const parts = content.split("|");
+              const parts = content.split("|").map(p => p.trim());
               if (parts.length < 2) continue;
-              const hours = parseFloat(parts[1].trim().replace(",", "."));
+              // Hours is always the last field, whether the line has
+              // "description | hours" or "description | category | hours".
+              const hours = parseFloat(parts[parts.length - 1].replace(",", "."));
               if (!isNaN(hours)) total += hours;
             }
 

@@ -21,6 +21,44 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
+            const CATEGORY_ORDER = ["organisation", "meeting", "development", "research", "writing"];
+
+            function categoryLabel(cat) {
+              return cat.charAt(0).toUpperCase() + cat.slice(1);
+            }
+
+            function sortCategories(keys) {
+              const known = CATEGORY_ORDER.filter(c => keys.includes(c));
+              const unknown = keys.filter(c => !CATEGORY_ORDER.includes(c)).sort();
+              return [...known, ...unknown];
+            }
+
+            function buildCategorySection(categoryTotals) {
+              const keys = sortCategories(Object.keys(categoryTotals));
+              const lines = keys.map(c => `- ${categoryLabel(c)}: ${categoryTotals[c]} h`);
+              return `### Category Totals\n${lines.join("\n")}\n`;
+            }
+
+            function parseTasks(body) {
+              const tasksSectionMatch = (body || "").match(/### Tasks\s*\n+([\s\S]*?)(?=\n### |$)/i);
+              if (!tasksSectionMatch) return [];
+              const lines = tasksSectionMatch[1].split("\n");
+              const tasks = [];
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith("-")) continue;
+                const content = trimmed.replace(/^-\s*/, "");
+                const parts = content.split("|").map(p => p.trim());
+                if (parts.length < 2) continue;
+                const description = parts[0];
+                const hours = parseFloat(parts[parts.length - 1].replace(",", "."));
+                if (isNaN(hours)) continue;
+                const category = parts.length >= 3 ? parts[1].toLowerCase() : "uncategorized";
+                tasks.push({ description, category, hours });
+              }
+              return tasks;
+            }
+
             const since = new Date();
             since.setDate(since.getDate() - 7);
 
@@ -35,36 +73,22 @@ jobs:
             // Only issues created within the last 7 days
             const weekIssues = allIssues.filter(i => new Date(i.created_at) >= since);
 
-            function parseTasks(body) {
-              const tasksSectionMatch = (body || "").match(/### Tasks\s*\n+([\s\S]*?)(?:\n### |$)/i);
-              if (!tasksSectionMatch) return [];
-              const lines = tasksSectionMatch[1].split("\n");
-              const tasks = [];
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed.startsWith("-")) continue;
-                const content = trimmed.replace(/^-\s*/, "");
-                const parts = content.split("|");
-                if (parts.length < 2) continue;
-                const description = parts[0].trim();
-                const hours = parseFloat(parts[1].trim().replace(",", "."));
-                if (isNaN(hours)) continue;
-                tasks.push({ description, hours });
-              }
-              return tasks;
-            }
-
             let weekTotal = 0;
+            const weekCategoryTotals = {};
             const sections = weekIssues.map(issue => {
               const tasks = parseTasks(issue.body);
               const issueTotal = tasks.reduce((sum, t) => sum + t.hours, 0);
               weekTotal += issueTotal;
 
+              for (const t of tasks) {
+                weekCategoryTotals[t.category] = (weekCategoryTotals[t.category] || 0) + t.hours;
+              }
+
               const dateMatch = (issue.body || "").match(/### Date\s*\n+(.+)/i);
               const dateStr = dateMatch ? dateMatch[1].trim() : issue.created_at.split("T")[0];
 
               const taskLines = tasks
-                .map(t => `  - ${t.description} — **${t.hours} h**`)
+                .map(t => `  - ${t.description} [${categoryLabel(t.category)}] — **${t.hours} h**`)
                 .join("\n");
 
               return `- [#${issue.number}](${issue.html_url}) – ${dateStr} — **${issueTotal} h total**\n${taskLines}`;
@@ -76,7 +100,8 @@ jobs:
             const reportBody =
               `## 📅 Weekly Report (as of ${dateStr})\n\n` +
               `**Total time this week: ${weekTotal} h**\n\n` +
-              `### Daily Reports\n` +
+              buildCategorySection(weekCategoryTotals) +
+              `\n### Entries\n` +
               (sections.length ? sections.join("\n") : "_No daily reports logged this week._") +
               `\n`;
 

@@ -25,12 +25,16 @@ body:
       label: Tasks
       description: >
         List every task you worked on today, one per line, using the format
-        `description | hours`. Example is pre-filled below — replace it with your own entries.
-        A "Total Hours" field will be added to this issue automatically once submitted.
+        `description | category | hours`. Category must be one of: organisation,
+        meeting, development, research, writing. Example is pre-filled below —
+        replace it with your own entries. A "Total Hours" field will be added to
+        this issue automatically once submitted.
       value: |
-        - Fixed login bug | 2.5
-        - Reviewed pull request #42 | 1
-        - Wrote unit tests | 3
+        - Write wiki entries | organisation | 2.5
+        - Zoom call 07.05. | meeting | 1
+        - Research on vector databases | research | 3
+        - Checking API calls | development | 1
+        - Write on survey | writing | 3
       render: markdown
     validations:
       required: true
