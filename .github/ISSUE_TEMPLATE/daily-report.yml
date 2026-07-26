@@ -1,14 +1,21 @@
 name: "✅ Daily Report"
 description: "Log one or more tasks you completed today, each with its own time spent"
-title: "[Daily Report]: "
+title: "Daily Report: "
 labels: ["worklog"]
 body:
+  - type: markdown
+    attributes:
+      value: >
+        The title above is optional to edit — a workflow will automatically set it to
+        `Daily Report – <date>` based on the Date field below. Any extra text you leave
+        after "Daily Report: " is kept as a short summary, e.g. `Daily Report – 2026-07-27 – bugfixes & PR review`.
+
   - type: input
     id: date
     attributes:
       label: Date
       description: Which day does this report cover?
-      placeholder: "2026-07-26"
+      placeholder: "YYYY-MM-DD"
     validations:
       required: true
 

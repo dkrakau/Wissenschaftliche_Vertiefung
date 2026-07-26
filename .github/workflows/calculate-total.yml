@@ -25,7 +25,7 @@ jobs:
             const body = issue.body || "";
 
             // Capture the Tasks section without consuming the following header,
-            // so we know exactly where to insert the new field if needed.
+            // so we know exactly where to insert the Total Hours field if needed.
             const tasksSectionMatch = body.match(/### Tasks\s*\n+([\s\S]*?)(?=\n### |$)/i);
             if (!tasksSectionMatch) {
               console.log("No Tasks section found, aborting.");
@@ -44,17 +44,16 @@ jobs:
               if (!isNaN(hours)) total += hours;
             }
 
+            // --- Total Hours field in the body ---
             const totalSectionRegex = /### Total Hours\s*\n+([\d.,]+)\s*h?\s*/i;
             const existingMatch = body.match(totalSectionRegex);
 
-            let newBody;
+            let newBody = body;
             if (existingMatch) {
               const currentValue = parseFloat(existingMatch[1].replace(",", "."));
-              if (currentValue === total) {
-                console.log("Total Hours is already up to date, skipping.");
-                return;
+              if (currentValue !== total) {
+                newBody = body.replace(totalSectionRegex, `### Total Hours\n\n${total} h\n`);
               }
-              newBody = body.replace(totalSectionRegex, `### Total Hours\n\n${total} h\n`);
             } else {
               const insertPos = tasksSectionMatch.index + tasksSectionMatch[0].length;
               newBody =
@@ -63,9 +62,35 @@ jobs:
                 body.slice(insertPos);
             }
 
+            // --- Title, normalized from the Date field ---
+            const dateMatch = body.match(/### Date\s*\n+(.+)/i);
+            const dateStr = dateMatch ? dateMatch[1].trim() : issue.created_at.split("T")[0];
+
+            // Strip any prior "Daily Report" prefix / date / separators to recover
+            // whatever optional summary text the person typed, so it survives re-runs.
+            let summary = issue.title
+              .replace(/^\[?Daily Report\]?:?\s*/i, "")
+              .replace(/^[-–]\s*/, "")
+              .replace(/^\d{4}-\d{2}-\d{2}\s*/, "")
+              .replace(/^[-–]\s*/, "")
+              .trim();
+
+            const newTitle = summary
+              ? `Daily Report – ${dateStr} – ${summary}`
+              : `Daily Report – ${dateStr}`;
+
+            const updatePayload = {};
+            if (newBody !== body) updatePayload.body = newBody;
+            if (newTitle !== issue.title) updatePayload.title = newTitle;
+
+            if (Object.keys(updatePayload).length === 0) {
+              console.log("Nothing to update, skipping.");
+              return;
+            }
+
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: newBody,
+              ...updatePayload,
             });
