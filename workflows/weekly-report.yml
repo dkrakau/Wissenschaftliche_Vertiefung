@@ -1,0 +1,89 @@
+name: Create Weekly Report
+
+on:
+  schedule:
+    # 18:00 UTC on Sundays ≈ 19:00-20:00 CET/CEST (depending on daylight saving)
+    # Adjust as needed — see notes in README-worklog.md
+    - cron: "0 18 * * 0"
+  workflow_dispatch: {}  # allows manual runs for testing
+
+permissions:
+  issues: write
+
+jobs:
+  weekly-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate weekly report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const since = new Date();
+            since.setDate(since.getDate() - 7);
+
+            const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "all",
+              labels: "worklog",
+              per_page: 100,
+            });
+
+            // Only issues created within the last 7 days
+            const weekIssues = allIssues.filter(i => new Date(i.created_at) >= since);
+
+            function parseTasks(body) {
+              const tasksSectionMatch = (body || "").match(/### Tasks\s*\n+([\s\S]*?)(?:\n### |$)/i);
+              if (!tasksSectionMatch) return [];
+              const lines = tasksSectionMatch[1].split("\n");
+              const tasks = [];
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith("-")) continue;
+                const content = trimmed.replace(/^-\s*/, "");
+                const parts = content.split("|");
+                if (parts.length < 2) continue;
+                const description = parts[0].trim();
+                const hours = parseFloat(parts[1].trim().replace(",", "."));
+                if (isNaN(hours)) continue;
+                tasks.push({ description, hours });
+              }
+              return tasks;
+            }
+
+            let weekTotal = 0;
+            const sections = weekIssues.map(issue => {
+              const tasks = parseTasks(issue.body);
+              const issueTotal = tasks.reduce((sum, t) => sum + t.hours, 0);
+              weekTotal += issueTotal;
+
+              const dateMatch = (issue.body || "").match(/### Date\s*\n+(.+)/i);
+              const dateStr = dateMatch ? dateMatch[1].trim() : issue.created_at.split("T")[0];
+
+              const taskLines = tasks
+                .map(t => `  - ${t.description} — **${t.hours} h**`)
+                .join("\n");
+
+              return `- [#${issue.number}](${issue.html_url}) – ${dateStr} — **${issueTotal} h total**\n${taskLines}`;
+            });
+
+            const today = new Date();
+            const dateStr = today.toISOString().split("T")[0];
+
+            const reportBody =
+              `## 📅 Weekly Report (as of ${dateStr})\n\n` +
+              `**Total time this week: ${weekTotal} h**\n\n` +
+              `### Daily Reports\n` +
+              (sections.length ? sections.join("\n") : "_No daily reports logged this week._") +
+              `\n`;
+
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: `📊 Weekly Report – ${dateStr}`,
+              body: reportBody,
+              labels: ["weekly-report"],
+            });

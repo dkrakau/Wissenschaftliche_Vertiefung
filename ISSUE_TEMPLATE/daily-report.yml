@@ -1,0 +1,37 @@
+name: "✅ Daily Report"
+description: "Log one or more tasks you completed today, each with its own time spent"
+title: "[Daily Report]: "
+labels: ["worklog"]
+body:
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: Which day does this report cover?
+      placeholder: "2026-07-26"
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: >
+        List every task you worked on today, one per line, using the format
+        `description | hours`. Example is pre-filled below — replace it with your own entries.
+        A "Total Hours" field will be added to this issue automatically once submitted.
+      value: |
+        - Fixed login bug | 2.5
+        - Reviewed pull request #42 | 1
+        - Wrote unit tests | 3
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      description: Anything else worth mentioning about today's work.
+    validations:
+      required: false

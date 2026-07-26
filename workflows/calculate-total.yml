@@ -1,0 +1,71 @@
+name: Calculate Total Hours
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  calculate-total:
+    # Runs when a daily report is created or edited.
+    # The sender check prevents an infinite loop: this workflow edits the issue body,
+    # which would otherwise re-trigger itself.
+    if: >
+      contains(github.event.issue.labels.*.name, 'worklog') &&
+      github.event.sender.login != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add or update Total Hours field
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || "";
+
+            // Capture the Tasks section without consuming the following header,
+            // so we know exactly where to insert the new field if needed.
+            const tasksSectionMatch = body.match(/### Tasks\s*\n+([\s\S]*?)(?=\n### |$)/i);
+            if (!tasksSectionMatch) {
+              console.log("No Tasks section found, aborting.");
+              return;
+            }
+
+            const lines = tasksSectionMatch[1].split("\n");
+            let total = 0;
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("-")) continue;
+              const content = trimmed.replace(/^-\s*/, "");
+              const parts = content.split("|");
+              if (parts.length < 2) continue;
+              const hours = parseFloat(parts[1].trim().replace(",", "."));
+              if (!isNaN(hours)) total += hours;
+            }
+
+            const totalSectionRegex = /### Total Hours\s*\n+([\d.,]+)\s*h?\s*/i;
+            const existingMatch = body.match(totalSectionRegex);
+
+            let newBody;
+            if (existingMatch) {
+              const currentValue = parseFloat(existingMatch[1].replace(",", "."));
+              if (currentValue === total) {
+                console.log("Total Hours is already up to date, skipping.");
+                return;
+              }
+              newBody = body.replace(totalSectionRegex, `### Total Hours\n\n${total} h\n`);
+            } else {
+              const insertPos = tasksSectionMatch.index + tasksSectionMatch[0].length;
+              newBody =
+                body.slice(0, insertPos) +
+                `\n\n### Total Hours\n\n${total} h\n` +
+                body.slice(insertPos);
+            }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: newBody,
+            });

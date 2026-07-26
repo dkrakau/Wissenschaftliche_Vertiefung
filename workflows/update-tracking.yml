@@ -1,0 +1,121 @@
+name: Update Time Tracking
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  update-tracking:
+    # Runs once a daily-report issue is closed (i.e. the work it describes is considered done).
+    # Skips issues that already carry the "tracked" label, so reopening/re-closing an issue
+    # doesn't add its hours to the total a second time.
+    if: contains(github.event.issue.labels.*.name, 'worklog') && !contains(github.event.issue.labels.*.name, 'tracked')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update tracking issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || "";
+
+            // Extract the "Tasks" section from the issue form body
+            const tasksSectionMatch = body.match(/### Tasks\s*\n+([\s\S]*?)(?:\n### |$)/i);
+            if (!tasksSectionMatch) {
+              console.log("No Tasks section found, aborting.");
+              return;
+            }
+
+            // Parse each "- description | hours" line
+            const lines = tasksSectionMatch[1].split("\n");
+            const tasks = [];
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("-")) continue;
+              const content = trimmed.replace(/^-\s*/, "");
+              const parts = content.split("|");
+              if (parts.length < 2) continue;
+              const description = parts[0].trim();
+              const hours = parseFloat(parts[1].trim().replace(",", "."));
+              if (isNaN(hours)) continue;
+              tasks.push({ description, hours });
+            }
+
+            if (tasks.length === 0) {
+              console.log("No valid task lines found, aborting.");
+              return;
+            }
+
+            const issueTotal = tasks.reduce((sum, t) => sum + t.hours, 0);
+
+            // Extract the date field, fall back to the issue creation date
+            const dateMatch = body.match(/### Date\s*\n+(.+)/i);
+            const dateStr = dateMatch ? dateMatch[1].trim() : issue.created_at.split("T")[0];
+
+            const trackingTitle = "📊 Time Tracking Overview";
+
+            const openIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "tracking",
+            });
+
+            let trackingIssue = openIssues.data.find(i => i.title === trackingTitle);
+
+            const taskLines = tasks
+              .map(t => `  - ${t.description} — **${t.hours} h**`)
+              .join("\n");
+            const newEntry =
+              `- [#${issue.number}](${issue.html_url}) – ${dateStr} — **${issueTotal} h total**\n${taskLines}`;
+
+            if (!trackingIssue) {
+              const newBody =
+                `## Overall Time Tracking\n\n` +
+                `**Total: ${issueTotal} h**\n\n` +
+                `### Entries\n${newEntry}\n`;
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: trackingTitle,
+                body: newBody,
+                labels: ["tracking"],
+              });
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ["tracked"],
+              });
+              return;
+            }
+
+            const oldBody = trackingIssue.body || "";
+            const totalMatch = oldBody.match(/\*\*Total:\s*([\d.,]+)\s*h\*\*/);
+            const oldTotal = totalMatch ? parseFloat(totalMatch[1].replace(",", ".")) : 0;
+            const newTotal = oldTotal + issueTotal;
+
+            let updatedBody = oldBody.replace(
+              /\*\*Total:\s*[\d.,]+\s*h\*\*/,
+              `**Total: ${newTotal} h**`
+            );
+            updatedBody += `\n${newEntry}`;
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: trackingIssue.number,
+              body: updatedBody,
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ["tracked"],
+            });
