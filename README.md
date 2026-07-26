@@ -1,4 +1,4 @@
-# Wissenschaftliche Vertiefung
+# Advanced Research Module
 
  <!-- This content will not appear in the rendered Markdown
 # A first-level heading
