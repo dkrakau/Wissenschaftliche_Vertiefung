@@ -2,6 +2,8 @@ import os
 import gzip
 import json
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 def get_foldernames(path: str) -> list[str]:
     return [
@@ -44,6 +46,8 @@ def append_to_json(filepath, new_entry):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 start_time = time.time()
+start = datetime.fromtimestamp(start_time, tz=ZoneInfo("Europe/Berlin"))
+print(start)
 
 openalex_works_folder = 'D:\\openalex-snapshot\\data\\works'
 update_folders = get_foldernames(openalex_works_folder)
@@ -90,9 +94,13 @@ for update_folder in update_folders:
                             #print(abstract)
                             i = i + 1
                             print(f'{i} article found. Latest in {openalex_works_folder}\\{update_folder}\\{gz_file}')
-                            append_to_json("output.jsonl", work)
+                            append_to_json("output.jsonl", line)
 
-print("--- %s minutes ---" % ((time.time() - start_time) / 60))
+end_time = time.time()
+end = datetime.fromtimestamp(end_time, tz=ZoneInfo("Europe/Berlin"))
+print(end)
+
+print("--- %s minutes ---" % ((end_time - start_time) / 60))
 
 #'''
 
