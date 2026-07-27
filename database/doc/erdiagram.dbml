@@ -1,0 +1,63 @@
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table language {
+  code_alpha2 varchar [primary key]
+  name varchar
+}
+
+Table origin {
+  id integer [primary key]
+  name varchar
+}
+
+Table discipline {
+  id integer [primary key]
+  name varchar
+}
+
+Table license {
+  id integer [primary key]
+  name varchar
+  description varchar
+}
+
+Table source {
+  issn varchar [primary key]
+  name varchar
+  host_organisation varchar
+  type varchar
+}
+
+Table author {
+  id integer [primary key]
+  title varchar
+  name varchar
+  orcid varchar
+}
+
+Table work_author {
+  work_id integer [primary key, ref: > work.id]
+  author_id integer [primary key, ref: > author.id]
+}
+
+Table work_discipline {
+  work_id integer [primary key, ref: > work.id]
+  discipline_id integer [primary key, ref: > discipline.id]
+}
+
+Table work {
+  id integer [primary key]
+  doi varchar
+  title varchar
+  subtitle varchar
+  abstract text
+  keywords varchar
+  publication datetime
+  cite integer
+  public boolean
+  url varchar
+  license_id integer [ref: > license.id]
+  issn varchar [ref: > source.issn]
+  origin_id integer [ref: > origin.id]
+  language_code_apha2 varchar [ref: > language.code_alpha2]
+}
