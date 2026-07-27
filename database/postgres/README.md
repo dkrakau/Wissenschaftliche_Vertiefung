@@ -15,3 +15,15 @@ docker exec -it postgres /bin/bash
 ```
 psql -U admin -h localhost -d postgres
 ```
+
+## Script to build database
+
+```
+psql -U postgres -h localhost -d postgres -f /scripts/create_database.sql
+```
+
+## Script to build schema and tables
+
+```
+psql -U postgres -h localhost -d postgres -f /scripts/create_schema.sql
+```
