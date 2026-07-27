@@ -33,29 +33,23 @@ def parse_abstract(inverted_index: dict) -> str:
     
     return " ".join(words)
 
-def append_to_json(filepath, new_entry):
-    if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    else:
-        data = []
-
-    data.append(new_entry)
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+def append_line(filepath, line):
+    with open(filepath, "a", encoding="utf-8") as f:
+        f.write(line)
 
 start_time = time.time()
 start = datetime.fromtimestamp(start_time, tz=ZoneInfo("Europe/Berlin"))
-print(start)
+print(f'Start time: {start}')
 
 openalex_works_folder = 'D:\\openalex-snapshot\\data\\works'
 update_folders = get_foldernames(openalex_works_folder)
 language_en = 'en'
 language_de = 'de'
 search_type = 'article'
-search_title_en = 'vector database'
-search_title_de = 'vektordatenbank'
+search_title_en1 = 'vector database'
+search_title_en2 = 'vectordatabase'
+search_title_de1 = 'vektordatenbank'
+search_title_de2 = 'vektor datenbank'
 
 '''
 ### loop version with language
@@ -70,7 +64,7 @@ for update_folder in update_folders:
                         work_language = work.get('language') or ''
                         if language_en in work_language.lower() or language_de in work_language.lower():
                             work_title = work.get('title') or ''
-                            if search_title_en in work_title.lower() or search_title_de in work_title.lower():
+                            if search_title_en1 in work_title.lower() or search_title_en2 in work_title.lower() or search_title_de1 in work_title.lower() or search_title_de2 in work_title.lower():
                                 abstract = parse_abstract(work.get('abstract_inverted_index'))
                                 print(work)
                                 print(abstract)
@@ -88,20 +82,20 @@ for update_folder in update_folders:
                     work_type = work.get('type') or ''                    
                     if search_type in work_type.lower():
                         work_title = work.get('title') or ''
-                        if search_title_en in work_title.lower() or search_title_de in work_title.lower():
+                        if search_title_en1 in work_title.lower() or search_title_en2 in work_title.lower() or search_title_de1 in work_title.lower() or search_title_de2 in work_title.lower():
                             #abstract = parse_abstract(work.get('abstract_inverted_index'))
                             #print(work)
                             #print(abstract)
                             i = i + 1
-                            print(f'{i} article found. Latest in {openalex_works_folder}\\{update_folder}\\{gz_file}')
-                            append_to_json("output.jsonl", line)
+                            print(f'{datetime.fromtimestamp(time.time(), tz=ZoneInfo("Europe/Berlin"))}: {i} article found. Latest in {openalex_works_folder}\\{update_folder}\\{gz_file}')
+                            append_line("output.jsonl", line)
 
 end_time = time.time()
 end = datetime.fromtimestamp(end_time, tz=ZoneInfo("Europe/Berlin"))
-print(end)
 
+print(f'Start time: {start}')
+print(f'End time:   {end}')
 print("--- %s minutes ---" % ((end_time - start_time) / 60))
-
 #'''
 
 '''
