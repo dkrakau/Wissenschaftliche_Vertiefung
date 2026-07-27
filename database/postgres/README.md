@@ -10,7 +10,7 @@ docker compose up -d
 docker exec -it postgres /bin/bash
 ```
 
-## Conntect to postgres database using psql:
+## Conntect to postgres database using psql
 
 ```
 psql -U admin -h localhost -d postgres
