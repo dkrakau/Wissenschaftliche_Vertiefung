@@ -1,15 +1,37 @@
 import os
 import gzip
 import json
+import csv
+import glob
+import shutil
 import time
 import threading
 import itertools
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import argparse
 import colorama
 
 colorama.init(autoreset=True)
+
+# --- Work IDs from OpenAlex CSV file ---
+_work_ids = {} # global work_ids used from all workers
+def get_works_id_from_csv(csv_path: str) -> dict:
+    ids = []
+    with open(csv_path, "r", encoding="utf-8", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            ids.append(row["Work ID"])
+
+    work_ids = {}
+    for id in ids:
+        work_ids[id] = False
+    
+    return work_ids
+
+def get_only_false_work_ids(work_ids):
+     return {key: value for key, value in work_ids.items() if value is False}
 
 # --- Worker ID tracking (persistent per-thread) ---
 _worker_id_counter = itertools.count(1)
@@ -23,7 +45,7 @@ def get_worker_id() -> int:
 
 # --- 256-color ANSI palette ---
 RESET = "\033[0m"
-_COLOR_POOL = list(range(21, 231))
+_COLOR_POOL = list(range(21, 149))
 
 def get_worker_color_code(worker_id: int) -> str:
     color_num = _COLOR_POOL[(worker_id - 1) % len(_COLOR_POOL)]
@@ -54,7 +76,6 @@ def exit_active() -> int:
     with _active_lock:
         _active_count -= 1
         return _active_count
-
 
 # --- Per-output-file locks, so concurrent writers to the same folder's
 # .jsonl don't interleave/corrupt each other's lines ---
@@ -103,8 +124,8 @@ def append_line(filepath, line):
             f.write(line)
 
 
-def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str, output_dir: str,
-                     search_type: str, search_terms: list[str], total_files: int, max_workers: int):
+def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str, output_dir: str, total_files: int, max_workers: int):
+
     worker_id = get_worker_id()
 
     with _progress_lock:
@@ -113,46 +134,68 @@ def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str
     active_now = enter_active()
 
     try:
-        output_path = os.path.join(output_dir, f"{update_folder}.jsonl")
+        output_path = os.path.join(output_dir, f"output_worker_{worker_id}.jsonl")
         gz_path = os.path.join(openalex_works_folder, update_folder, gz_file)
 
         pct = (current_index / total_files * 100) if total_files else 100.0
 
-        cprint(worker_id, f'Worker_{worker_id} [active: {active_now}/{max_workers}]:\t{update_folder}/{gz_file}\t({current_index}/{total_files} files, {pct:.1f}%)')
+        cprint(
+            worker_id,
+            f"{f'Worker_{worker_id}':<9} [active: {active_now:>2}/{max_workers}]: "
+            f"{update_folder}/{gz_file:<12} "
+            f"({current_index}/{total_files} files, {pct:.1f}%)"
+        )
 
         with gzip.open(gz_path, 'rt', encoding='utf-8') as lines:
             for line in lines:
                 work = json.loads(line)
-                work_type = work.get('type') or ''
-                if search_type in work_type.lower():
-                    work_title = work.get('title') or ''
-                    title_lower = work_title.lower()
-                    if any(term in title_lower for term in search_terms):
+                id = work.get('id') or ''
+                work_id = id.split("/")[-1]
+                if _work_ids.get(work_id) is not None:
                         append_line(output_path, line)
+                        _work_ids[work_id] = True
+
+        cprint(
+            worker_id,
+            f"{f'Worker_{worker_id}':<9} [active: {active_now:>2}/{max_workers}]: "
+            f"{update_folder}/{gz_file:<12} "
+            f"({current_index}/{total_files} files, {pct:.1f}%) finished"
+        )
+        
     finally:
         exit_active()
 
+def cprint(worker_id: int, message: str):
+    color = get_worker_color_code(worker_id)
+    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("[%Y-%m-%d %H:%M:%S]")
+    print(f"{color}{timestamp} {message}{RESET}")
 
 def main():
-    start_time = time.time()
-    start = datetime.fromtimestamp(start_time, tz=ZoneInfo("Europe/Berlin"))
-    print(f'Start time: {start}')
+    parser = argparse.ArgumentParser(description="Extract target Work IDs from an OpenAlex snapshot.")
+    parser.add_argument("openalex_works_folder", help="Path to the openalex-snapshot 'works' folder")
+    parser.add_argument("openalex_csv_file", help="Path to the openalex csv file containing target Work IDs")
+    parser.add_argument(
+        "--max-workers",
+        type=int,
+        default=8,
+        help="Maximum number of concurrent worker threads (default: 32, max recommended: 128)"
+    )
+    args = parser.parse_args()
 
-    openalex_works_folder = 'D:\\openalex-snapshot\\data\\works'
-    output_dir = os.path.join(os.getcwd(), 'outputs')
-    os.makedirs(output_dir, exist_ok=True)
+    start_timestamp = time.time()
+    start_time = datetime.fromtimestamp(start_timestamp, tz=ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d_%H-%M-%S")
+    print(f'Start time: {start_time}')
 
+    max_workers = args.max_workers
+    openalex_works_folder = args.openalex_works_folder
     update_folders = get_foldernames(openalex_works_folder)
 
-    search_type = 'article'
-    search_terms = [
-        'vector database',
-        'vectordatabase',
-        'vektordatenbank',
-        'vektor datenbank',
-    ]
+    global _work_ids 
+    _work_ids = get_works_id_from_csv(args.openalex_csv_file)
+    print(f'Loaded {len(_work_ids)} target Work IDs from CSV.')
 
-    max_workers = 32
+    output_dir = os.path.join(os.getcwd(), f'outputs-{start_time}')
+    os.makedirs(output_dir, exist_ok=True)   
 
     # --- Build a flat list of (update_folder, gz_file) tasks across ALL folders ---
     print('Scanning folders to build task list...')
@@ -168,11 +211,7 @@ def main():
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_task = {
-            executor.submit(
-                process_gz_file,
-                update_folder, gz_file, openalex_works_folder, output_dir,
-                search_type, search_terms, total_files, max_workers,
-            ): (update_folder, gz_file)
+            executor.submit(process_gz_file, update_folder, gz_file, openalex_works_folder, output_dir, total_files, max_workers): (update_folder, gz_file)
             for update_folder, gz_file in tasks
         }
 
@@ -183,12 +222,27 @@ def main():
             except Exception as exc:
                 print(f'File {update_folder}/{gz_file} raised an exception: {exc}')
 
-    end_time = time.time()
-    end = datetime.fromtimestamp(end_time, tz=ZoneInfo("Europe/Berlin"))
-    print(f'Start time: {start}')
-    print(f'End time:   {end}')
-    print("--- %s minutes ---" % ((end_time - start_time) / 60))
+    # Combine worker outputs into one single jsonl file
+    print('Combining per-worker output files...')
+    combined_path = os.path.join(output_dir, "output_combined.jsonl")
+    worker_files = sorted(glob.glob(os.path.join(output_dir, "output_worker_*.jsonl")))
+    with open(combined_path, "w", encoding="utf-8") as outfile:
+        for fname in worker_files:
+            with open(fname, "r", encoding="utf-8") as infile:
+                shutil.copyfileobj(infile, outfile)
+    print(f'Combined {len(worker_files)} worker files into {combined_path}')
 
+    # Write work ids that were not found in openalex-snapshot to json file
+    with open(os.path.join(output_dir, "missing-work-ids.json"), "w") as file:
+        json.dump(get_only_false_work_ids(_work_ids), file, indent=4)
+    print('Created file for work ids not found in openalex-snapshot.')
+
+    # Calculate script run time
+    end_timestamp = time.time()
+    end_time = datetime.fromtimestamp(end_timestamp, tz=ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d_%H-%M-%S")
+    print(f'Start time: {start_time}')
+    print(f'End time:   {end_time}')
+    print("Total minutes: %s" % ((end_timestamp - start_timestamp) / 60))
 
 if __name__ == '__main__':
     main()
