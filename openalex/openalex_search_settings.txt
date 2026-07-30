@@ -1,0 +1,5 @@
+searchterm for works: "vector database" OR "vectordatabase" OR "vector-db" OR "vector db" OR "vectordb" OR "vektordatenbank" OR "vektor-db" OR "vektor db"
+type: article or/and dissertation
+search fields: title,abstract,fulltext
+stemming enabled
+keword search with operators enabeled
