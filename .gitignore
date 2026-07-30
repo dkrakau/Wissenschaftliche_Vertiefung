@@ -4,6 +4,6 @@ openalex/requester/outputs-*
 openalex/requester/outputs-*
 
 # ignored files
-openalex/crawler/openalex-csv-files/*.csv
+openalex/openalex-csv-files/*.csv
 openalex/result-*.jsonl
 *.bat
