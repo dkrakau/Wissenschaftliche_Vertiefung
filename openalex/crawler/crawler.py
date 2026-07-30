@@ -137,9 +137,8 @@ def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str
         cprint(
             worker_id,
             f"{f'worker_{worker_id}':<9} [active: {active_now:>2}/{max_workers}]: "
-            f"{update_folder}/{gz_file:<12} "
-            f"({current_index}/{total_files} files, {pct:.1f}%) "
-            f"[{found_so_far}/{_total_target_count} work_ids found]"
+            f"starting >> {update_folder}/{gz_file:<12} "
+            f"({current_index}/{total_files} files, {pct:.1f}%)\t"
         )
 
         with gzip.open(gz_path, 'rt', encoding='utf-8') as lines:
@@ -156,13 +155,13 @@ def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str
         active_now = exit_active()
         active_decremented = True
 
-        found_so_far = _found_count
+        found_so_far = _found_count       
         cprint(
             worker_id,
-            f"{f'worker_{worker_id}':<9} [active:{active_now:>2}/{max_workers}]: "
-            f"{update_folder}/{gz_file:<12} "
-            f"({current_index}/{total_files} files, {pct:.1f}%) "
-            f"[{found_so_far}/{_total_target_count} work_ids found] finished"
+            f"{f'worker_{worker_id}':<9} [active: {active_now:>2}/{max_workers}]: "
+            f"finished << {update_folder}/{gz_file:<12} "
+            f"({current_index}/{total_files} files, {pct:.1f}%)\t"
+            f"[{found_so_far}/{_total_target_count} work_ids found]"
         )
 
     finally:
