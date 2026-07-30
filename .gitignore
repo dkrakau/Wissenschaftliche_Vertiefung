@@ -1,0 +1,9 @@
+# ignored folders
+openalex/crawler/openalex-csv-files
+openalex/crawler/outputs-*
+openalex/requester/outputs-*
+openalex/requester/outputs-*
+
+# ignored files
+*.bat
+openalex/result-*.jsonl
