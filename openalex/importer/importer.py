@@ -1,115 +1,40 @@
-import os
-import gzip
-import json
-import time
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-def get_foldernames(path: str) -> list[str]:
-    return [
-        f for f in os.listdir(path) 
-        if os.path.isdir(os.path.join(path, f))
-    ]
-
-def get_filenames(path: str) -> list[str]:
-    return [
-        f for f in os.listdir(path)
-        if os.path.isfile(os.path.join(path, f))
-    ]
-
+import sys
+import argparse
+import pandas as pd
+import psycopg2
 
 def parse_abstract(inverted_index: dict) -> str:
     if not inverted_index:
         return ""
-    
-    # Find the total length
+
     max_pos = max(pos for positions in inverted_index.values() for pos in positions)
-    
-    # Place each word at its position(s)
+
     words = [""] * (max_pos + 1)
     for word, positions in inverted_index.items():
         for pos in positions:
             words[pos] = word
-    
+
     return " ".join(words)
 
-def append_line(filepath, line):
-    with open(filepath, "a", encoding="utf-8") as f:
-        f.write(line)
+def main():
+    parser = argparse.ArgumentParser(description="Process a JSONL file.")
+    parser.add_argument("file", help="Path to the .jsonl file to process")
+    args = parser.parse_args()
 
-start_time = time.time()
-start = datetime.fromtimestamp(start_time, tz=ZoneInfo("Europe/Berlin"))
-print(f'Start time: {start}')
+    file = args.file
 
-openalex_works_folder = 'D:\\openalex-snapshot\\data\\works'
-update_folders = get_foldernames(openalex_works_folder)
-language_en = 'en'
-language_de = 'de'
-search_type = 'article'
-search_title_en1 = 'vector database'
-search_title_en2 = 'vectordatabase'
-search_title_de1 = 'vektordatenbank'
-search_title_de2 = 'vektor datenbank'
+    df = pd.read_json(file, lines=True)
+    print(df)
 
-'''
-### loop version with language
-for update_folder in update_folders:
-    gz_files = get_filenames(f'{openalex_works_folder}\\{update_folder}')
-    for gz_file in gz_files:
-        with gzip.open(f'{openalex_works_folder}\\{update_folder}\\{gz_file}', 'rt', encoding='utf-8') as lines:
-            for line in lines:
-                    work = json.loads(line)
-                    work_type = work.get('type') or ''
-                    if search_type in work_type.lower():
-                        work_language = work.get('language') or ''
-                        if language_en in work_language.lower() or language_de in work_language.lower():
-                            work_title = work.get('title') or ''
-                            if search_title_en1 in work_title.lower() or search_title_en2 in work_title.lower() or search_title_de1 in work_title.lower() or search_title_de2 in work_title.lower():
-                                abstract = parse_abstract(work.get('abstract_inverted_index'))
-                                print(work)
-                                print(abstract)
-'''
+    for chunk in pd.read_json(file, lines=True, chunksize=100):
+        # process each chunk here
+        print(chunk.shape)
 
-#'''
-### loop version without language
-i = 0
-for update_folder in update_folders:
-    gz_files = get_filenames(f'{openalex_works_folder}\\{update_folder}')
-    for gz_file in gz_files:
-        with gzip.open(f'{openalex_works_folder}\\{update_folder}\\{gz_file}', 'rt', encoding='utf-8') as lines:
-            for line in lines:
-                    work = json.loads(line)
-                    work_type = work.get('type') or ''                    
-                    if search_type in work_type.lower():
-                        work_title = work.get('title') or ''
-                        if search_title_en1 in work_title.lower() or search_title_en2 in work_title.lower() or search_title_de1 in work_title.lower() or search_title_de2 in work_title.lower():
-                            #abstract = parse_abstract(work.get('abstract_inverted_index'))
-                            #print(work)
-                            #print(abstract)
-                            i = i + 1
-                            print(f'{datetime.fromtimestamp(time.time(), tz=ZoneInfo("Europe/Berlin"))}: {i} article found. Latest in {openalex_works_folder}\\{update_folder}\\{gz_file}')
-                            append_line("output.jsonl", line)
+        # example processing
+        # chunk["new_column"] = ...
+        # save results, aggregate, filter, etc.
 
-end_time = time.time()
-end = datetime.fromtimestamp(end_time, tz=ZoneInfo("Europe/Berlin"))
+if __name__ == '__main__':
+    main()
 
-print(f'Start time: {start}')
-print(f'End time:   {end}')
-print("--- %s minutes ---" % ((end_time - start_time) / 60))
-#'''
-
-'''
-### test version
-i = 0
-gz_file = get_filenames(f'{openalex_works_folder}\\{update_folders[0]}')
-with gzip.open(f'{openalex_works_folder}\\{update_folders[0]}\\{gz_file[0]}', 'rt', encoding='utf-8') as lines:
-    for line in lines:
-        work = json.loads(line)
-        title = work.get('title') or ''
-        abstract = parse_abstract(work.get('abstract_inverted_index'))
-        print(work)
-        print(abstract)
-        i = i + 1
-        if i == 2:
-            break
-'''
+# python importer.py ../result-2026-07-30_14-09-51.jsonl
