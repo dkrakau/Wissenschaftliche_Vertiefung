@@ -42,7 +42,6 @@ def get_worker_id() -> int:
         _worker_id_local.id = next(_worker_id_counter)
     return _worker_id_local.id
 
-
 # --- 256-color ANSI palette ---
 RESET = "\033[0m"
 _COLOR_POOL = list(range(21, 149))
@@ -51,11 +50,9 @@ def get_worker_color_code(worker_id: int) -> str:
     color_num = _COLOR_POOL[(worker_id - 1) % len(_COLOR_POOL)]
     return f"\033[38;5;{color_num}m"
 
-
 def cprint(worker_id: int, message: str):
     color = get_worker_color_code(worker_id)
     print(f"{color}{message}{RESET}")
-
 
 # --- Global progress tracking (now per gz file, not per folder) ---
 _progress_lock = threading.Lock()
@@ -88,20 +85,17 @@ def get_output_lock(output_path: str) -> threading.Lock:
             _output_locks[output_path] = threading.Lock()
         return _output_locks[output_path]
 
-
 def get_foldernames(path: str) -> list[str]:
     return [
         f for f in os.listdir(path)
         if os.path.isdir(os.path.join(path, f))
     ]
 
-
 def get_filenames(path: str) -> list[str]:
     return [
         f for f in os.listdir(path)
         if os.path.isfile(os.path.join(path, f))
     ]
-
 
 def parse_abstract(inverted_index: dict) -> str:
     if not inverted_index:
@@ -116,13 +110,11 @@ def parse_abstract(inverted_index: dict) -> str:
 
     return " ".join(words)
 
-
 def append_line(filepath, line):
     lock = get_output_lock(filepath)
     with lock:
         with open(filepath, "a", encoding="utf-8") as f:
             f.write(line)
-
 
 def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str, output_dir: str, total_files: int, max_workers: int):
 
@@ -152,8 +144,9 @@ def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str
                 id = work.get('id') or ''
                 work_id = id.split("/")[-1]
                 if _work_ids.get(work_id) is not None:
-                        append_line(output_path, line)
-                        _work_ids[work_id] = True
+                    output_line = json.dumps(work, ensure_ascii=True) + "\n"
+                    append_line(output_path, output_line)
+                    _work_ids[work_id] = True
 
         cprint(
             worker_id,
