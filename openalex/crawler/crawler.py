@@ -132,13 +132,15 @@ def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str
         output_path = os.path.join(output_dir, f"output_worker_{worker_id}.jsonl")
         gz_path = os.path.join(openalex_works_folder, update_folder, gz_file)
 
+        # just for console message alingment
         pct = (current_index / total_files * 100) if total_files else 100.0
+        idx_width = len(str(total_files))
 
         cprint(
             worker_id,
             f"{f'worker_{worker_id}':<9} [active: {active_now:>2}/{max_workers}]: "
-            f"starting >> {update_folder}/{gz_file:<12} "
-            f"({current_index}/{total_files} files, {pct:.1f}%)\t"
+            f"starting >> {update_folder}/{gz_file} "
+            f"({current_index:>{idx_width}}/{total_files} files, {pct:>5.1f}%)"
         )
 
         with gzip.open(gz_path, 'rt', encoding='utf-8') as lines:
@@ -159,8 +161,8 @@ def process_gz_file(update_folder: str, gz_file: str, openalex_works_folder: str
         cprint(
             worker_id,
             f"{f'worker_{worker_id}':<9} [active: {active_now:>2}/{max_workers}]: "
-            f"finished << {update_folder}/{gz_file:<12} "
-            f"({current_index}/{total_files} files, {pct:.1f}%)\t"
+            f"finished << {update_folder}/{gz_file} "
+            f"({current_index:>{idx_width}}/{total_files} files, {pct:>5.1f}%) "
             f"[{found_so_far}/{_total_target_count} work_ids found]"
         )
 
