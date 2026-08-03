@@ -1,4 +1,4 @@
-CREATE DATABASE arm_db
+CREATE DATABASE openalex
     WITH
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.UTF-8'
