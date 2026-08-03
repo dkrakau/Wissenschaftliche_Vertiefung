@@ -1,0 +1,10 @@
+{
+  "archive": "archive",
+  "company": "company",
+  "education": "education",
+  "facility": "facility",
+  "government": "government",
+  "healthcare": "healthcare",
+  "nonprofit": "nonprofit",
+  "other": "other"
+}

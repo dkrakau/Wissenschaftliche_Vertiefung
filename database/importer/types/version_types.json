@@ -1,0 +1,6 @@
+{
+  "publishedVersion": "The document's version of record; the most authoritative version.",
+  "acceptedVersion": "The document after having completed peer review and being officially accepted for publication, which lacks publisher formatting but has content interchangeable with publishedVersion.",
+  "submittedVersion": "The document as submitted to the publisher by the authors, but before peer-review.",
+  "null": "null"
+}

@@ -1,0 +1,15 @@
+{
+  "apache-2-0": "Apache License 2.0",
+  "cc-by": "CC BY",
+  "cc-by-nc": "CC BY-NC",
+  "cc-by-nc-nd": "CC BY-NC-ND",
+  "cc-by-nc-sa": "CC BY-NC-SA",
+  "cc-by-nd": "CC BY-ND",
+  "cc-by-sa": "CC BY-SA",
+  "gpl-v2": "GNU GPLv2",
+  "gpl-v3": "GNU GPLv3",
+  "isc": "ISC License",
+  "mit": "MIT",
+  "other-oa": "other open access",
+  "public-domain": "public domain (CC0)"
+}
