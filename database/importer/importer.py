@@ -4,6 +4,34 @@ import json
 import pandas as pd
 import psycopg2
 
+def read_work_types(): 
+    with open("work_tpyes.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def read_institution_types(): 
+    with open("institution_tpyes.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def read_soure_types(): 
+    with open("source_tpyes.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def read_license_types(): 
+    with open("license_tpyes.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def read_version_types(): 
+    with open("version_tpyes.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def read_language_types(): 
+    with open("iso-639-1-alpha-2-language-code_types.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def read_country_types(): 
+    with open("iso-3166-1-alpha-2-country-code_types.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
 def parse_abstract(inverted_index: dict) -> str:
     if not inverted_index:
         return ""
@@ -24,7 +52,22 @@ def main():
 
     file = args.file
 
+    # openalex types
+    work_types = read_work_types()
+    institution_types = read_institution_types()
+    source_types = read_soure_types()
+    license_types = read_license_types()
+    version_types = read_version_types()
+    language_types = read_language_types()
+    country_types = read_country_types()
+
+    # reading openalex work objects
     df = pd.read_json(file, lines=True)
+    
+
+
+
+    ###################################################################################################################################
 
     ''' dataset by index
     dataset = df.to_dict(orient="records")
