@@ -1,0 +1,194 @@
+// Docs: https://dbml.dbdiagram.io/docs
+
+TABLE work_type {
+  id VARCHAR [PRIMARY KEY]
+  display_description VARCHAR
+}
+
+TABLE languages {
+  code_alpha2 CHAR(2) [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE work {
+  id VARCHAR [PRIMARY KEY]
+  doi VARCHAR [UNIQUE]
+  type_id VARCHAR [REF: > work_type.id]
+  title VARCHAR
+  publication_date TIMESTAMPTZ
+  publication_year INTEGER
+  language_code_alpha2 CHAR(2) [REF: > languages.code_alpha2]
+  abstract_inverted_index JSONB
+  cited_by_count INTEGER
+  referenced_works_count INTEGER
+  authors_count INTEGER
+  locations_count INTEGER
+  is_open_access BOOLEAN
+  is_paratext BOOLEAN
+  is_retracted BOOLEAN
+  has_fulltext BOOLEAN
+  created_date TIMESTAMPTZ
+  updated_date TIMESTAMPTZ
+}
+
+TABLE biblio {
+  work_id VARCHAR [PRIMARY KEY, REF: - work.id] 
+  volume VARCHAR
+  issue VARCHAR
+  first_page VARCHAR
+  last_page VARCHAR
+}
+
+TABLE work_reference {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  referenced_work_id VARCHAR [PRIMARY KEY]
+}
+
+TABLE indexed_in {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE work_indexed_in {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  indexed_in_id VARCHAR [PRIMARY KEY, REF: > indexed_in.id]
+}
+
+TABLE keyword {
+  id BIGINT [PRIMARY KEY]
+  keyword VARCHAR [UNIQUE]
+}
+
+TABLE work_keyword {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  keyword_id BIGINT [PRIMARY KEY, REF: > keyword.id]
+  score DOUBLE
+}
+
+TABLE domain {
+  id INTEGER [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE field {
+  id INTEGER [PRIMARY KEY]
+  domain_id INTEGER [REF: > domain.id]
+  display_name VARCHAR
+}
+
+TABLE subfield {
+  id INTEGER [PRIMARY KEY]
+  field_id INTEGER [REF: > field.id]
+  display_name VARCHAR
+}
+
+TABLE topic {
+  id VARCHAR [PRIMARY KEY]
+  subfield_id INTEGER [REF: > subfield.id]
+  display_name VARCHAR
+}
+
+TABLE work_topic {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  topic_id VARCHAR [PRIMARY KEY, REF: > topic.id]
+  score DOUBLE
+}
+
+TABLE country {
+  code_alpha2 CHAR(2) [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE author {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+  orcid VARCHAR [unique]
+}
+
+TABLE author_country {
+  author_id VARCHAR [PRIMARY KEY, REF: > author.id]
+  country_code_alpha2 CHAR(2) [PRIMARY KEY, REF: > country.code_alpha2]
+}
+
+TABLE institution_type {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE institution {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+  ror VARCHAR [unique]
+  institution_type_id VARCHAR [REF: > institution_type.id]
+  country_code_alpha2 CHAR(2) [REF: > country.code_alpha2]
+}
+
+TABLE work_author {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  author_id VARCHAR [PRIMARY KEY, REF: > author.id]
+  author_position INTEGER
+}
+
+TABLE work_author_institution {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  author_id VARCHAR [PRIMARY KEY, REF: > author.id]
+  institution_id VARCHAR [PRIMARY KEY, REF: > institution.id]
+}
+
+TABLE funder {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+  ror VARCHAR [UNIQUE]
+}
+
+TABLE work_funder {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  funder_id VARCHAR [PRIMARY KEY, REF: > funder.id]
+}
+
+TABLE work_award {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  award_id VARCHAR [PRIMARY KEY]
+}
+
+TABLE source_type {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE source {
+  id VARCHAR [PRIMARY KEY]
+  issn_l VARCHAR [UNIQUE]
+  display_name VARCHAR
+  host_organisation_name VARCHAR
+  source_type_id VARCHAR [REF: > source_type.id]
+  is_open_access BOOLEAN
+}
+
+TABLE versions {
+  id VARCHAR [PRIMARY KEY]
+  display_description VARCHAR
+}
+
+TABLE license {
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
+}
+
+TABLE locations {
+  id VARCHAR [PRIMARY KEY]
+  source_id VARCHAR [REF: > source.id]
+  pdf_url VARCHAR
+  landing_page_url VARCHAR
+  version_id VARCHAR [REF: > versions.id]
+  license_id VARCHAR [REF: > license.id]
+  is_open_access BOOLEAN
+  is_accepted BOOLEAN
+  is_published BOOLEAN
+}
+
+TABLE work_locations {
+  work_id VARCHAR [PRIMARY KEY, REF: > work.id]
+  locations_id VARCHAR [PRIMARY KEY, REF: > locations.id]
+  is_primary BOOLEAN
+}
