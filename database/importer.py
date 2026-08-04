@@ -1,4 +1,3 @@
-import sys
 import argparse
 import json
 import pandas as pd
@@ -6,19 +5,7 @@ from scripts.config import load_config
 from scripts.connect import connect
 from scripts.load_types import *
 from scripts.db_inserts import *
-
-def parse_abstract(inverted_index: dict) -> str:
-    if not inverted_index:
-        return ""
-
-    max_pos = max(pos for positions in inverted_index.values() for pos in positions)
-
-    words = [""] * (max_pos + 1)
-    for word, positions in inverted_index.items():
-        for pos in positions:
-            words[pos] = word
-
-    return " ".join(words)
+from scripts.utils import *
 
 def main():
     parser = argparse.ArgumentParser(description="Process a JSONL file.")
