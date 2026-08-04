@@ -5,7 +5,7 @@ import pandas as pd
 from scripts.config import load_config
 from scripts.connect import connect
 from scripts.load_types import *
-from scripts.inserts import *
+from scripts.db_inserts import *
 
 def parse_abstract(inverted_index: dict) -> str:
     if not inverted_index:
