@@ -68,13 +68,13 @@ CREATE TABLE work_indexed_in (
 );
 
 CREATE TABLE keyword (
-    id BIGINT PRIMARY KEY,
-    keyword VARCHAR UNIQUE
+    id VARCHAR PRIMARY KEY,
+    display_name VARCHAR
 );
 
 CREATE TABLE work_keyword (
     work_id VARCHAR REFERENCES work (id),
-    keyword_id BIGINT REFERENCES keyword (id),
+    keyword_id VARCHAR REFERENCES keyword (id),
     score DOUBLE PRECISION,
 
     PRIMARY KEY (work_id, keyword_id)

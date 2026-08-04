@@ -55,13 +55,13 @@ TABLE work_indexed_in {
 }
 
 TABLE keyword {
-  id BIGINT [PRIMARY KEY]
-  keyword VARCHAR [UNIQUE]
+  id VARCHAR [PRIMARY KEY]
+  display_name VARCHAR
 }
 
 TABLE work_keyword {
   work_id VARCHAR [PRIMARY KEY, REF: > work.id]
-  keyword_id BIGINT [PRIMARY KEY, REF: > keyword.id]
+  keyword_id VARCHAR [PRIMARY KEY, REF: > keyword.id]
   score DOUBLE
 }
 
