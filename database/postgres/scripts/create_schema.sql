@@ -187,6 +187,7 @@ CREATE TABLE source (
     id VARCHAR PRIMARY KEY,
     issn_l VARCHAR UNIQUE,
     display_name VARCHAR,
+    host_organisation VARCHAR,
     host_organisation_name VARCHAR,
     source_type_id VARCHAR REFERENCES source_type (id),
     is_open_access BOOLEAN

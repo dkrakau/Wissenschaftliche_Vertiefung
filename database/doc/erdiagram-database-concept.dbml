@@ -102,7 +102,7 @@ TABLE country {
 TABLE author {
   id VARCHAR [PRIMARY KEY]
   display_name VARCHAR
-  orcid VARCHAR [unique]
+  orcid VARCHAR [UNIQUE]
 }
 
 TABLE author_country {
@@ -118,7 +118,7 @@ TABLE institution_type {
 TABLE institution {
   id VARCHAR [PRIMARY KEY]
   display_name VARCHAR
-  ror VARCHAR [unique]
+  ror VARCHAR [UNIQUE]
   institution_type_id VARCHAR [REF: > institution_type.id]
   country_code_alpha2 CHAR(2) [REF: > country.code_alpha2]
 }
@@ -160,6 +160,7 @@ TABLE source {
   id VARCHAR [PRIMARY KEY]
   issn_l VARCHAR [UNIQUE]
   display_name VARCHAR
+  host_organisation VARCHAR
   host_organisation_name VARCHAR
   source_type_id VARCHAR [REF: > source_type.id]
   is_open_access BOOLEAN

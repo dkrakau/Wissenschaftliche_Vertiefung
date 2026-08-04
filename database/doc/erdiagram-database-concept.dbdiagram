@@ -16,7 +16,7 @@
         "name": "source",
         "schemaName": "public",
         "x": 1761.0835106333557,
-        "y": 1287.767133161539
+        "y": 1255.767133161539
       },
       {
         "name": "biblio",
@@ -6606,6 +6606,96 @@
           "source_type_id"
         ],
         "secondTableName": "source",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "code_alpha2"
+        ],
+        "firstTableName": "languages",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "language_code_alpha2"
+        ],
+        "secondTableName": "work",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "source",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "source_id"
+        ],
+        "secondTableName": "locations",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "versions",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "version_id"
+        ],
+        "secondTableName": "locations",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "license",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "license_id"
+        ],
+        "secondTableName": "locations",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "work",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "work_id"
+        ],
+        "secondTableName": "work_locations",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "locations",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "locations_id"
+        ],
+        "secondTableName": "work_locations",
         "secondSchemaName": "public",
         "secondRelation": "*",
         "checkPoints": []
