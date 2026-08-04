@@ -2,8 +2,13 @@
 openalex/crawler/outputs-*
 openalex/requester/outputs-*
 openalex/requester/outputs-*
+database/__pycache__
+database/scripts/__pycache__
 
 # ignored files
 openalex/openalex-csv-files/*.csv
 openalex/result-*.jsonl
+database/scripts/database.ini
+database/postgres/.env
+
 *.bat
