@@ -25,10 +25,6 @@ def main():
     parser.add_argument("file", help="Path to the .jsonl file to process")
     args = parser.parse_args()
 
-    file = args.file
-
-    print("importer")
-
     '''
     # load db config data
     config = load_config()
