@@ -2,35 +2,10 @@ import sys
 import argparse
 import json
 import pandas as pd
-import psycopg2
-
-def read_work_types(): 
-    with open("work_tpyes.json", "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def read_institution_types(): 
-    with open("institution_tpyes.json", "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def read_soure_types(): 
-    with open("source_tpyes.json", "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def read_license_types(): 
-    with open("license_tpyes.json", "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def read_version_types(): 
-    with open("version_tpyes.json", "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def read_language_types(): 
-    with open("iso-639-1-alpha-2-language-code_types.json", "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def read_country_types(): 
-    with open("iso-3166-1-alpha-2-country-code_types.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+from scripts.config import load_config
+from scripts.connect import connect
+from scripts.load_types import *
+from scripts.inserts import *
 
 def parse_abstract(inverted_index: dict) -> str:
     if not inverted_index:
@@ -52,20 +27,61 @@ def main():
 
     file = args.file
 
-    # openalex types
-    work_types = read_work_types()
-    institution_types = read_institution_types()
-    source_types = read_soure_types()
-    license_types = read_license_types()
-    version_types = read_version_types()
-    language_types = read_language_types()
-    country_types = read_country_types()
+    print("importer")
 
-    # reading openalex work objects
-    df = pd.read_json(file, lines=True)
-    
+    '''
+    # load db config data
+    config = load_config()
+    # connect to posgres db
+    conn = connect(config)
+    '''
 
+    # load openalex types
+    work_types = load_work_types()
+    institution_types = load_institution_types()
+    source_types = load_soure_types()
+    license_types = load_license_types()
+    version_types = load_version_types()
+    indexed_in_types = load_indexed_in_types()
+    language_types = load_language_types()
+    country_types = load_country_types()
 
+    # loading openalex work objects into pandas
+    df = pd.read_json(args.file, lines=True)
+    for dataset in df.to_dict(orient="records"):
+        # inserts
+        '''
+        insert_work_type(conn, dataset, work_types)
+        insert_languages(conn, dataset, language_types)
+        insert_work(conn, dataset)
+        insert_biblio(conn, dataset)
+        insert_work_reference(conn, dataset)
+        insert_indexed_in(conn, dataset, indexed_in_types)
+        insert_work_indexed_in(conn, dataset)
+        insert_keyword(conn, dataset)
+        insert_work_keyword(conn, dataset)
+        insert_domain(conn, dataset)
+        insert_field(conn, dataset)
+        insert_subfield(conn, dataset)
+        insert_topic(conn, dataset)
+        insert_work_topic(conn, dataset)
+        insert_country(conn, dataset, country_types)
+        insert_author(conn, dataset)
+        insert_author_country(conn, dataset)
+        insert_institution_type(conn, dataset, institution_types)
+        insert_institution(conn, dataset)
+        insert_work_author(conn, dataset)
+        insert_work_author_institution(conn, dataset)
+        insert_funder(conn, dataset)
+        insert_work_funder(conn, dataset)
+        insert_work_award(conn, dataset)
+        insert_source_type(conn, dataset, source_types)
+        insert_source(conn, dataset)
+        insert_versions(conn, dataset, version_types)
+        insert_license(conn, dataset, license_types)
+        insert_locations(conn, dataset)
+        insert_work_locations(conn, dataset)
+        '''
 
     ###################################################################################################################################
 
@@ -169,5 +185,5 @@ def main():
 if __name__ == '__main__':
     main()
 
-# cd .\database\importer
-# python importer.py ../../openalex/result-2026-08-01_11-14-41.jsonl
+# cd database
+# python importer.py ../openalex/result-2026-08-01_11-14-41.jsonl
