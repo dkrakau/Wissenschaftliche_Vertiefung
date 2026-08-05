@@ -1,4 +1,28 @@
+import psycopg2
+import math
+import pandas as pd
+
 from psycopg2.extensions import connection as PgConnection
+from psycopg2.extras import Json
+
+
+def get_or_none(dataset: dict, key: str):
+    result = None
+    if key in dataset:
+        value = dataset[key]
+        is_nan_string = isinstance(value, str) and value.strip().lower() == "nan"
+        is_float_nan = isinstance(value, float) and math.isnan(value)
+        if value is not None and not is_nan_string and not is_float_nan:
+            result = value
+    return result
+
+
+def get_author_id(conn: PgConnection, display_name: str):
+    query = "SELECT id FROM author WHERE display_name = %s;"
+    with conn.cursor() as cur:
+        cur.execute(query, (display_name,))
+        row = cur.fetchone()
+        return row[0] if row else None
 
 
 def insert_work_type(conn: PgConnection, dataset: dict, work_types: dict):
@@ -18,43 +42,50 @@ def insert_work_type(conn: PgConnection, dataset: dict, work_types: dict):
         conn.commit()
 
 
-def insert_languages(conn: PgConnection, dataset: dict, language_types: dict):
+def insert_languages(
+    conn: PgConnection,
+    dataset: dict,
+    language_codes_aplpha2_types: dict,
+    language_codes_aplpha3_types: dict,
+):
     # extract data
-    code_alpha2 = dataset["language"]
+    code_alpha_2_3 = get_or_none(dataset, "language")
 
     # insert all languages if not already present
-    if code_alpha2:
+    if code_alpha_2_3:
         sql = """
-            INSERT INTO languages (code_alpha2, display_name)
+            INSERT INTO languages (code_alpha_2_3, display_name)
             VALUES (%s, %s)
-            ON CONFLICT (id) DO NOTHING;;
+            ON CONFLICT (code_alpha_2_3) DO NOTHING;
         """
         with conn.cursor() as cur:
-            display_name = language_types.get(code_alpha2)
-            cur.execute(sql, (code_alpha2, display_name))
+            display_name = language_codes_aplpha2_types.get(
+                code_alpha_2_3
+            ) or language_codes_aplpha3_types.get(code_alpha_2_3)
+            cur.execute(sql, (code_alpha_2_3, display_name))
         conn.commit()
 
 
 def insert_work(conn: PgConnection, dataset: dict):
     # extract data
     work_id = dataset["id"].split("/")[-1]
-    doi = dataset["doi"]
+    doi = get_or_none(dataset, "doi")
     type_id = dataset["type"]
     title = dataset["title"]
-    publication_date = dataset["publication_date"]  # parse to timestampz?
-    publication_year = int(dataset["publication_year"])
-    language_code_alpha2 = dataset["language"]
-    abstract_inverted_index = dataset["abstract_inverted_index"]
+    publication_date = get_or_none(dataset, "publication_date")
+    publication_year = get_or_none(dataset, "publication_year")
+    language_code_alpha_2_3 = get_or_none(dataset, "language")
+    abstract_inverted_index = Json(dataset["abstract_inverted_index"])
     cited_by_count = int(dataset["cited_by_count"])
     referenced_works_count = int(dataset["referenced_works_count"])
-    authors_count = int(dataset["authors_count"])
+    authors_count = int(len(dataset["authorships"]))
     locations_count = int(dataset["locations_count"])
     is_open_access = bool(dataset["open_access"]["is_oa"])
     is_paratext = bool(dataset["is_paratext"])
     is_retracted = bool(dataset["is_retracted"])
     has_fulltext = bool(dataset["has_fulltext"])
-    created_date = dataset["created_date"]  # parse to timestampz?
-    updated_date = dataset["updated_date"]  # parse to timestampz?
+    created_date = dataset["created_date"]
+    updated_date = dataset["updated_date"]
     # insert work
     sql = """
         INSERT INTO work (
@@ -64,7 +95,7 @@ def insert_work(conn: PgConnection, dataset: dict):
             title,
             publication_date,
             publication_year,
-            language_code_alpha2,
+            language_code_alpha_2_3,
             abstract_inverted_index,
             cited_by_count,
             referenced_works_count,
@@ -88,7 +119,7 @@ def insert_work(conn: PgConnection, dataset: dict):
                 title,
                 publication_date,
                 publication_year,
-                language_code_alpha2,
+                language_code_alpha_2_3,
                 abstract_inverted_index,
                 cited_by_count,
                 referenced_works_count,
@@ -213,7 +244,8 @@ def insert_work_keyword(conn: PgConnection, dataset: dict):
     if keyword_ids_with_score:
         sql = """
             INSERT INTO work_keyword (work_id, keyword_id, score)
-            VALUES (%s, %s, %s);
+            VALUES (%s, %s, %s)
+            ON CONFLICT (work_id, keyword_id) DO NOTHING;
         """
         with conn.cursor() as cur:
             for id, score in keyword_ids_with_score:
@@ -303,7 +335,7 @@ def insert_topic(conn: PgConnection, dataset: dict):
     # insert all topics if not already present
     if topics:
         sql = """
-            INSERT INTO subfield (id, subfield_id, display_name)
+            INSERT INTO topic (id, subfield_id, display_name)
             VALUES (%s, %s, %s)
             ON CONFLICT (id) DO NOTHING;
         """
@@ -325,7 +357,8 @@ def insert_work_topic(conn: PgConnection, dataset: dict):
     if topics:
         sql = """
             INSERT INTO work_topic (work_id, topic_id, score)
-            VALUES (%s, %s, %s);
+            VALUES (%s, %s, %s)
+            ON CONFLICT (work_id, topic_id) DO NOTHING;
         """
         with conn.cursor() as cur:
             for topic_id, score in topics:
@@ -335,22 +368,22 @@ def insert_work_topic(conn: PgConnection, dataset: dict):
 
 def insert_country(conn: PgConnection, dataset: dict, country_types: dict):
     # extract data
-    codes_alpha2 = set()
+    codes_alpha_2 = set()
     for authorship in dataset["authorships"]:
         for country in authorship["countries"]:
-            codes_alpha2.add(country)
+            codes_alpha_2.add(country)
 
     # insert all countrys if not already present
-    if codes_alpha2:
+    if codes_alpha_2:
         sql = """
-            INSERT INTO country (code_alpha2, display_name)
+            INSERT INTO country (code_alpha_2, display_name)
             VALUES (%s, %s)
-            ON CONFLICT (id) DO NOTHING;
+            ON CONFLICT (code_alpha_2) DO NOTHING;
         """
         with conn.cursor() as cur:
-            for code_alpha2 in codes_alpha2:
-                display_name = country_types.get(code_alpha2)
-                cur.execute(sql, (code_alpha2, display_name))
+            for code_alpha_2 in codes_alpha_2:
+                display_name = country_types.get(code_alpha_2)
+                cur.execute(sql, (code_alpha_2, display_name))
         conn.commit()
 
 
@@ -358,28 +391,48 @@ def insert_author(conn: PgConnection, dataset: dict):
     # extract data
     authors = [
         (
-            author["author"]["id"].split("/")[-1],
-            author["author"]["display_name"],
-            author["author"]["orcid"],
+            (
+                authorship["author"]["id"].split("/")[-1]
+                if authorship["author"]["id"]
+                else None
+            ),
+            authorship["author"]["display_name"],
+            authorship["author"]["orcid"],
         )
-        for author in dataset["authorships"]
+        for authorship in dataset["authorships"]
     ]
 
     # insert all authors if not already present
     if authors:
         sql = """
-            INSERT INTO author (id, display_name, orcid)
+            INSERT INTO author (openalex_id, display_name, orcid)
             VALUES (%s, %s, %s)
-            ON CONFLICT (id) DO NOTHING;
+            ON CONFLICT (display_name) DO NOTHING;
         """
         with conn.cursor() as cur:
-            for id, display_name, orcid in authors:
-                cur.execute(sql, (id, display_name, orcid))
+            for openalex_id, display_name, orcid in authors:
+                cur.execute(sql, (openalex_id, display_name, orcid))
         conn.commit()
 
 
 def insert_author_country(conn: PgConnection, dataset: dict):
-    print("insert_author_country")
+    # extract data
+    author_counties = set()
+    for authorship in dataset["authorships"]:
+        author_id = get_author_id(conn, authorship["author"]["display_name"])
+        for country in authorship["countries"]:
+            author_counties.add((author_id, country))
+    # insert all author_counties if not already present
+    if author_counties:
+        sql = """
+            INSERT INTO author_country (author_id, country_code_alpha_2)
+            VALUES (%s, %s)
+            ON CONFLICT (author_id, country_code_alpha_2) DO NOTHING;
+        """
+        with conn.cursor() as cur:
+            for author_country in author_counties:
+                cur.execute(sql, (author_country[0], author_country[1]))
+        conn.commit()
 
 
 def insert_institution_type(conn: PgConnection, dataset: dict, institute_types: dict):
@@ -387,7 +440,8 @@ def insert_institution_type(conn: PgConnection, dataset: dict, institute_types: 
     institution_type_ids = set()
     for authorship in dataset["authorships"]:
         for institution in authorship["institutions"]:
-            institution_type_ids.add(institution["type"])
+            if institution["type"] is not None:
+                institution_type_ids.add(institution["type"])
 
     # insert all institution_types if not already present
     if institution_type_ids:
@@ -421,7 +475,7 @@ def insert_institution(conn: PgConnection, dataset: dict):
     # insert all institutions if not already present
     if institutions:
         sql = """
-            INSERT INTO institution (id, display_name, ror, institution_type_id, country_code_alpha2)
+            INSERT INTO institution (id, display_name, ror, institution_type_id, country_code_alpha_2)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (id) DO NOTHING;
         """
@@ -431,11 +485,11 @@ def insert_institution(conn: PgConnection, dataset: dict):
                 display_name,
                 ror,
                 institution_type_id,
-                country_code_alpha2,
+                country_code_alpha_2,
             ) in institutions:
                 cur.execute(
                     sql,
-                    (id, display_name, ror, institution_type_id, country_code_alpha2),
+                    (id, display_name, ror, institution_type_id, country_code_alpha_2),
                 )
         conn.commit()
 
@@ -443,19 +497,20 @@ def insert_institution(conn: PgConnection, dataset: dict):
 def insert_work_author(conn: PgConnection, dataset: dict):
     # extract data
     work_id = dataset["id"].split("/")[-1]
-    author_ids = [
-        (authorship["author"]["id"].split("/")[-1])
-        for authorship in dataset["authorships"]
+    authors = [
+        get_author_id(conn, author["author"]["display_name"])
+        for author in dataset["authorships"]
     ]
 
     # insert work_author if authors are present in dataset
-    if author_ids:
+    if not all(a is None for a in authors):
         sql = """
             INSERT INTO work_author (work_id, author_id)
-            VALUES (%s, %s);
+            VALUES (%s, %s)
+            ON CONFLICT (work_id, author_id) DO NOTHING;
         """
         with conn.cursor() as cur:
-            for author_id in author_ids:
+            for author_id in authors:
                 cur.execute(sql, (work_id, author_id))
         conn.commit()
 
@@ -465,7 +520,7 @@ def insert_work_author_institution(conn: PgConnection, dataset: dict):
     work_id = dataset["id"].split("/")[-1]
     author_institutions = set()
     for authorship in dataset["authorships"]:
-        author_id = authorship["author"]["id"].split("/")[-1]
+        author_id = get_author_id(conn, authorship["author"]["display_name"])
         for institution in authorship["institutions"]:
             author_institutions.add((author_id, institution["id"].split("/")[-1]))
 
@@ -549,7 +604,8 @@ def insert_source_type(conn: PgConnection, dataset: dict, source_types: dict):
     # extract data
     source_type_ids = set()
     for location in dataset["locations"]:
-        for source in location["source"]:
+        source = location["source"]
+        if source is not None:
             source_type_ids.add(source["type"])
 
     # insert all source_types if not already present
@@ -570,63 +626,73 @@ def insert_source(conn: PgConnection, dataset: dict):
     # extract data
     sources = set()
     for location in dataset["locations"]:
-        for source in location["source"]:
+        source = location["source"]
+
+        if source is not None:
+            host_organisation = None
+            host_organisation_name = None
+            if "host_organisation" in source:
+                host_organisation = source["host_organisation"].split("/")[-1]
+            if "host_organisation_name" in source:
+                host_organisation_name = source["host_organisation_name"]
+
             sources.add(
                 (
                     source["id"].split("/")[-1],
                     source["issn_l"],
                     source["display_name"],
-                    source["host_organisation"].split("/")[-1],
-                    source["host_organisation_name"],
+                    host_organisation,
+                    host_organisation_name,
                     source["type"],
                     source["is_oa"],
                 )
             )
 
-    # insert all sources if not already present
-    if sources:
-        sql = """
-            INSERT INTO source (
-                id,
-                issn_l,
-                display_name,
-                host_organisation,
-                host_organisation_name,
-                source_type_id,
-                is_open_access)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING;
-        """
-        with conn.cursor() as cur:
-            for (
-                id,
-                issn_l,
-                display_name,
-                host_organisation,
-                host_organisation_name,
-                source_type_id,
-                is_open_access,
-            ) in sources:
-                cur.execute(
-                    sql,
-                    (
-                        id,
-                        issn_l,
-                        display_name,
-                        host_organisation,
-                        host_organisation_name,
-                        source_type_id,
-                        is_open_access,
-                    ),
-                )
-        conn.commit()
+        # insert all sources if not already present
+        if sources:
+            sql = """
+                INSERT INTO source (
+                    id,
+                    issn_l,
+                    display_name,
+                    host_organisation,
+                    host_organisation_name,
+                    source_type_id,
+                    is_open_access)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING;
+            """
+            with conn.cursor() as cur:
+                for (
+                    id,
+                    issn_l,
+                    display_name,
+                    host_organisation,
+                    host_organisation_name,
+                    source_type_id,
+                    is_open_access,
+                ) in sources:
+                    cur.execute(
+                        sql,
+                        (
+                            id,
+                            issn_l,
+                            display_name,
+                            host_organisation,
+                            host_organisation_name,
+                            source_type_id,
+                            is_open_access,
+                        ),
+                    )
+            conn.commit()
 
 
 def insert_versions(conn: PgConnection, dataset: dict, version_types: dict):
     # extract data
     version_type_ids = set()
     for location in dataset["locations"]:
-        version_type_ids.add(location["version"])
+        if location["version"] != None:
+            version_type_ids.add(location["version"])
 
     # insert all versions if not already present
     if version_type_ids:
@@ -646,7 +712,8 @@ def insert_license(conn: PgConnection, dataset: dict, license_types: dict):
     # extract data
     license_type_ids = set()
     for location in dataset["locations"]:
-        license_type_ids.add(location["license_id"].split("/")[-1])
+        if location["license_id"] != None:
+            license_type_ids.add(location["license_id"].split("/")[-1])
 
     # insert all license if not already present
     if license_type_ids:
@@ -664,35 +731,41 @@ def insert_license(conn: PgConnection, dataset: dict, license_types: dict):
 
 def insert_locations(conn: PgConnection, dataset: dict):
     # extract data
-    locations = [
-        (
+    locations_by_id = {}
+    for location in dataset["locations"]:
+        source = location["source"]
+        locations_by_id[location["id"]] = (
             location["id"],
-            location["source"]["id"].split("/")[-1],
+            (
+                source["id"].split("/")[-1]
+                if source is not None and source["id"]
+                else None
+            ),
             location["pdf_url"],
             location["landing_page_url"],
             location["version"],
-            location["license_id"].split("/")[-1],
+            (location["license_id"].split("/")[-1] if location["license_id"] else None),
             location["is_oa"],
             location["is_accepted"],
             location["is_published"],
         )
-        for location in dataset["locations"]
-    ]
+    locations = list(locations_by_id.values())  # to remove location duplicates by id
 
     # insert locations if locations are present in dataset
     if locations:
         sql = """
             INSERT INTO locations (
-            id,
-            source_id,
-            pdf_url,
-            landing_page_url,
-            version_id,
-            license_id,
-            is_open_access,
-            is_accepted,
-            is_published)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+                id,
+                source_id,
+                pdf_url,
+                landing_page_url,
+                version_id,
+                license_id,
+                is_open_access,
+                is_accepted,
+                is_published)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING;
         """
         with conn.cursor() as cur:
             for (
@@ -731,10 +804,10 @@ def insert_work_locations(conn: PgConnection, dataset: dict):
     # insert work_locations if locations are present in dataset
     if locations:
         locations[0] = (locations[0][0], True)  # set frist tuple as primary location
-
         sql = """
             INSERT INTO work_locations (work_id, locations_id, is_primary)
-            VALUES (%s, %s, %s);
+            VALUES (%s, %s, %s)
+            ON CONFLICT (work_id, locations_id) DO NOTHING;
         """
         with conn.cursor() as cur:
             for locations_id, is_primary in locations:
