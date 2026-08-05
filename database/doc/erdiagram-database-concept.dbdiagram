@@ -6699,6 +6699,51 @@
         "secondSchemaName": "public",
         "secondRelation": "*",
         "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "code_alpha_2_3"
+        ],
+        "firstTableName": "languages",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "language_code_alpha_2_3"
+        ],
+        "secondTableName": "work",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "code_alpha_2"
+        ],
+        "firstTableName": "country",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "country_code_alpha2"
+        ],
+        "secondTableName": "author_country",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "code_alpha_2"
+        ],
+        "firstTableName": "country",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "country_code_alpha_2"
+        ],
+        "secondTableName": "institution",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
       }
     ]
   },

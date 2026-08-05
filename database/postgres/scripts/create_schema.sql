@@ -1,4 +1,4 @@
-\c openalex
+\c openalex -- this line is needed for to use database in docker container, but will be skipped by load_sql_script function in db_manager.py 
 
 CREATE SCHEMA IF NOT EXISTS openalex;
 
@@ -10,18 +10,18 @@ CREATE TABLE work_type (
 );
 
 CREATE TABLE languages (
-    code_alpha2 CHAR(2) PRIMARY KEY,
+    code_alpha_2_3 CHAR(3) PRIMARY KEY,
     display_name VARCHAR
 );
 
 CREATE TABLE work (
     id VARCHAR PRIMARY KEY,
-    doi VARCHAR UNIQUE,
+    doi VARCHAR,
     type_id VARCHAR,
     title VARCHAR,
     publication_date TIMESTAMPTZ,
     publication_year INTEGER,
-    language_code_alpha2 CHAR(2),
+    language_code_alpha_2_3 CHAR(3),
     abstract_inverted_index JSONB,
     cited_by_count INTEGER,
     referenced_works_count INTEGER,
@@ -37,7 +37,7 @@ CREATE TABLE work (
     CONSTRAINT fk_work_work_type 
         FOREIGN KEY (type_id) REFERENCES work_type (id),
     CONSTRAINT fk_work_language
-        FOREIGN KEY (language_code_alpha2) REFERENCES languages (code_alpha2)
+        FOREIGN KEY (language_code_alpha_2_3) REFERENCES languages (code_alpha_2_3)
 );
 
 CREATE TABLE biblio (
@@ -112,21 +112,22 @@ CREATE TABLE work_topic (
 );
 
 CREATE TABLE country (
-    code_alpha2 CHAR(2) PRIMARY KEY,
+    code_alpha_2 CHAR(2) PRIMARY KEY,
     display_name VARCHAR
 );
 
 CREATE TABLE author (
-    id VARCHAR PRIMARY KEY,
-    display_name VARCHAR,
-    orcid VARCHAR UNIQUE
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    openalex_id VARCHAR,
+    display_name VARCHAR UNIQUE,
+    orcid VARCHAR 
 );
 
 CREATE TABLE author_country (
-    author_id VARCHAR REFERENCES author (id),
-    country_code_alpha2 CHAR(2) REFERENCES country (code_alpha2),
+    author_id INTEGER REFERENCES author (id),
+    country_code_alpha_2 CHAR(2) REFERENCES country (code_alpha_2),
 
-    PRIMARY KEY (author_id, country_code_alpha2)
+    PRIMARY KEY (author_id, country_code_alpha_2)
 );
 
 CREATE TABLE institution_type (
@@ -139,12 +140,12 @@ CREATE TABLE institution (
     display_name VARCHAR,
     ror VARCHAR UNIQUE,
     institution_type_id VARCHAR REFERENCES institution_type (id),
-    country_code_alpha2 CHAR(2) REFERENCES country (code_alpha2)
+    country_code_alpha_2 CHAR(2) REFERENCES country (code_alpha_2)
 );
 
 CREATE TABLE work_author (
     work_id VARCHAR REFERENCES work (id),
-    author_id VARCHAR REFERENCES author (id),
+    author_id INTEGER REFERENCES author (id),
     author_position INTEGER,
 
     PRIMARY KEY (work_id, author_id)
@@ -152,7 +153,7 @@ CREATE TABLE work_author (
 
 CREATE TABLE work_author_institution (
     work_id VARCHAR REFERENCES work (id),
-    author_id VARCHAR REFERENCES author (id),
+    author_id INTEGER REFERENCES author (id),
     institution_id VARCHAR REFERENCES institution (id),
 
     PRIMARY KEY (work_id, author_id, institution_id)
@@ -161,7 +162,7 @@ CREATE TABLE work_author_institution (
 CREATE TABLE funder (
     id VARCHAR PRIMARY KEY,
     display_name VARCHAR,
-    ror VARCHAR UNIQUE
+    ror VARCHAR
 );
 
 CREATE TABLE work_funder (
@@ -185,7 +186,7 @@ CREATE TABLE source_type (
 
 CREATE TABLE source (
     id VARCHAR PRIMARY KEY,
-    issn_l VARCHAR UNIQUE,
+    issn_l VARCHAR,
     display_name VARCHAR,
     host_organisation VARCHAR,
     host_organisation_name VARCHAR,

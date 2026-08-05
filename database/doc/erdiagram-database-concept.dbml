@@ -6,18 +6,18 @@ TABLE work_type {
 }
 
 TABLE languages {
-  code_alpha2 CHAR(2) [PRIMARY KEY]
+  code_alpha_2_3 CHAR(3) [PRIMARY KEY, note: 'alpha 2 and 3 codes']
   display_name VARCHAR
 }
 
 TABLE work {
   id VARCHAR [PRIMARY KEY]
-  doi VARCHAR [UNIQUE]
+  doi VARCHAR [note: 'not unique']
   type_id VARCHAR [REF: > work_type.id]
   title VARCHAR
   publication_date TIMESTAMPTZ
   publication_year INTEGER
-  language_code_alpha2 CHAR(2) [REF: > languages.code_alpha2]
+  language_code_alpha_2_3 CHAR(3) [REF: > languages.code_alpha_2_3]
   abstract_inverted_index JSONB
   cited_by_count INTEGER
   referenced_works_count INTEGER
@@ -95,19 +95,20 @@ TABLE work_topic {
 }
 
 TABLE country {
-  code_alpha2 CHAR(2) [PRIMARY KEY]
+  code_alpha_2 CHAR(2) [PRIMARY KEY]
   display_name VARCHAR
 }
 
 TABLE author {
-  id VARCHAR [PRIMARY KEY]
-  display_name VARCHAR
-  orcid VARCHAR [UNIQUE]
+  id INTEGER [PRIMARY KEY, INCREMENT]
+  openalex_id VARCHAR
+  display_name VARCHAR [UNIQUE]
+  orcid VARCHAR
 }
 
 TABLE author_country {
-  author_id VARCHAR [PRIMARY KEY, REF: > author.id]
-  country_code_alpha2 CHAR(2) [PRIMARY KEY, REF: > country.code_alpha2]
+  author_id INTEGER [PRIMARY KEY, REF: > author.id]
+  country_code_alpha_2 CHAR(2) [PRIMARY KEY, REF: > country.code_alpha_2]
 }
 
 TABLE institution_type {
@@ -120,25 +121,25 @@ TABLE institution {
   display_name VARCHAR
   ror VARCHAR [UNIQUE]
   institution_type_id VARCHAR [REF: > institution_type.id]
-  country_code_alpha2 CHAR(2) [REF: > country.code_alpha2]
+  country_code_alpha_2 CHAR(2) [REF: > country.code_alpha_2]
 }
 
 TABLE work_author {
   work_id VARCHAR [PRIMARY KEY, REF: > work.id]
-  author_id VARCHAR [PRIMARY KEY, REF: > author.id]
+  author_id INTEGER [PRIMARY KEY, REF: > author.id]
   author_position INTEGER
 }
 
 TABLE work_author_institution {
   work_id VARCHAR [PRIMARY KEY, REF: > work.id]
-  author_id VARCHAR [PRIMARY KEY, REF: > author.id]
+  author_id INTEGER [PRIMARY KEY, REF: > author.id]
   institution_id VARCHAR [PRIMARY KEY, REF: > institution.id]
 }
 
 TABLE funder {
   id VARCHAR [PRIMARY KEY]
   display_name VARCHAR
-  ror VARCHAR [UNIQUE]
+  ror VARCHAR [note: 'not unique']
 }
 
 TABLE work_funder {
@@ -158,7 +159,7 @@ TABLE source_type {
 
 TABLE source {
   id VARCHAR [PRIMARY KEY]
-  issn_l VARCHAR [UNIQUE]
+  issn_l VARCHAR [note: 'not unique']
   display_name VARCHAR
   host_organisation VARCHAR
   host_organisation_name VARCHAR
