@@ -36,9 +36,16 @@ def load_entity_types():
         return json.load(f)
 
 
-def load_language_types():
+def load_language_codes_aplpha2_types():
     with open(
         "types/iso-639-1-alpha-2-language-code_types.json", "r", encoding="utf-8"
+    ) as f:
+        return json.load(f)
+
+
+def load_language_codes_aplpha3_types():
+    with open(
+        "types/iso-639-3-alpha-3-language-code_types.json", "r", encoding="utf-8"
     ) as f:
         return json.load(f)
 
