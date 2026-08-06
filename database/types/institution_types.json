@@ -3,6 +3,7 @@
   "company": "company",
   "education": "education",
   "facility": "facility",
+  "funder": "funder",
   "government": "government",
   "healthcare": "healthcare",
   "nonprofit": "nonprofit",
