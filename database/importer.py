@@ -8,6 +8,7 @@ from scripts.connect import connect
 from scripts.load_types import *
 from scripts.db_inserts import *
 from scripts.utils import *
+from urllib.parse import urlsplit, urlunsplit
 
 
 def main():
@@ -44,8 +45,15 @@ def main():
     line_counts = len(df)
     i = 0
     for dataset in df.to_dict(orient="records"):
-        # for i, dataset in enumerate(df.iloc[3200:].to_dict(orient="records"), start=3201): # for debugging
-        print(dataset["id"], end=" ")
+        # for i, dataset in enumerate(df.iloc[3780:].to_dict(orient="records"), start=3781):  # for debugging
+
+        # Convert work url to api work url
+        url = dataset["id"]
+        parts = urlsplit(url)
+        parts = parts._replace(netloc="api." + parts.netloc)
+        work_api_url = urlunsplit(parts)
+
+        print(work_api_url, end=" ")
 
         # inserts
         insert_work_type(conn, dataset, work_types)
@@ -82,7 +90,7 @@ def main():
         insert_work_locations(conn, dataset)
 
         i = i + 1
-        print(f"inserted ({i}/{line_counts})")
+        print(f"processed ({i}/{line_counts})")
 
     # Calculate script run time
     end_timestamp = time.time()

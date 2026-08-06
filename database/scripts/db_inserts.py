@@ -1,8 +1,9 @@
 import psycopg2
 import math
 import pandas as pd
-
+from datetime import datetime, timezone
 from psycopg2.extensions import connection as PgConnection
+from psycopg2.extras import RealDictCursor
 from psycopg2.extras import Json
 
 """
@@ -23,11 +24,40 @@ def get_or_none(dataset: dict, key: str):
     return result
 
 
+def parse_datetime_utc(s: str) -> datetime:
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 """
 ############################################################################################
-                                GET FUNCTIONS
+                                QUERY FUNCTIONS
 ############################################################################################
 """
+
+
+def exists_normalized_title(conn: PgConnection, title: str):
+    query = "SELECT EXISTS ( SELECT 1 FROM openalex.work WHERE lower(trim(title)) = lower(trim(%s)) );"
+    with conn.cursor() as cur:
+        cur.execute(query, (title,))
+        return cur.fetchone()[0]
+
+
+def exists_work_id(conn: PgConnection, work_id: str):
+    query = "SELECT EXISTS ( SELECT 1 FROM openalex.work WHERE id = %s );"
+    with conn.cursor() as cur:
+        cur.execute(query, (work_id,))
+        return cur.fetchone()[0]
+
+
+def get_work_by_title(conn: PgConnection, title: str) -> dict | None:
+    query = "SELECT * FROM openalex.work WHERE lower(trim(title)) = lower(trim(%s));"
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(query, (title,))
+        result = cur.fetchone()
+        return dict(result) if result is not None else None
 
 
 def get_publication_year_by_work_doi(conn: PgConnection, doi: str):
@@ -51,6 +81,12 @@ def get_author_id(conn: PgConnection, display_name: str):
                                 DELETE FUNCTIONS
 ############################################################################################
 """
+
+
+def delete_work_by_id(conn: PgConnection, work_id: str):
+    sql = "DELETE FROM openalex.work WHERE id = %s;"
+    with conn.cursor() as cur:
+        cur.execute(sql, (work_id,))
 
 
 def delete_work_by_doi(conn: PgConnection, doi: str):
@@ -113,27 +149,75 @@ def insert_work(conn: PgConnection, dataset: dict):
     doi = get_or_none(dataset, "doi")
     type_id = dataset["type"]
     title = dataset["title"]
-    publication_date = get_or_none(dataset, "publication_date")
+    current_publication_date = get_or_none(dataset, "publication_date")
     current_publication_year = get_or_none(dataset, "publication_year")
     language_code_alpha_2_3 = get_or_none(dataset, "language")
     abstract_inverted_index = Json(dataset["abstract_inverted_index"])
     cited_by_count = int(dataset["cited_by_count"])
     referenced_works_count = int(dataset["referenced_works_count"])
-    authors_count = int(len(dataset["authorships"]))
+    current_authors_count = int(len(dataset["authorships"]))
     locations_count = int(dataset["locations_count"])
     is_open_access = bool(dataset["open_access"]["is_oa"])
     is_paratext = bool(dataset["is_paratext"])
     is_retracted = bool(dataset["is_retracted"])
     has_fulltext = bool(dataset["has_fulltext"])
     created_date = dataset["created_date"]
-    updated_date = dataset["updated_date"]
-    # Doupicate test: Check if current publication_year is newest
+    current_updated_date = dataset["updated_date"]
+    #######################################################################################################
+    #   DUPLICATES IN WORKS
+    #######################################################################################################
+    # Duplication check 1: same DOI
     publication_year = get_publication_year_by_work_doi(conn, doi)
-    if publication_year is not None and publication_year >= current_publication_year:
-        return  # skip if existing entrys publication year is newer.
-    # drop older work
-    if publication_year is not None:
-        delete_work_by_doi(conn, doi)
+    if publication_year is not None:  # same DOI exists
+        if publication_year >= current_publication_year:
+            print(f"\nskip current work with id {work_id}")
+            return  # keep work with existing DOI
+        delete_work_by_doi(conn, doi)  # delete existing work
+        print(f"\ndeleted existing work with doi: {doi}")
+    # Duplication check 2: same normalized title
+    if exists_normalized_title(conn, title):  # same title exists
+        existing_work = get_work_by_title(conn, title)
+        if current_publication_date is not None:
+            comparisons = [
+                (
+                    "publication_date",
+                    existing_work["publication_date"],
+                    parse_datetime_utc(current_publication_date),
+                ),
+                (
+                    "authors_count",
+                    existing_work["authors_count"],
+                    current_authors_count,
+                ),
+                (
+                    "updated_date",
+                    existing_work["updated_date"],
+                    parse_datetime_utc(current_updated_date),
+                ),
+            ]
+            for fieldname, existing_value, current_value in comparisons:
+                if current_value > existing_value:
+                    delete_work_by_id(conn, existing_work["id"])
+                    print(
+                        f'\ndeleted work {existing_work["id"]} with older values for {fieldname}.'
+                    )
+                    break
+                if current_value < existing_value:
+                    print(
+                        f'\nexisting work with id {existing_work["id"]} wins over compairissons.'
+                    )
+                    return  # existing work wins over compairisons
+            else:
+                print(
+                    f'\nexisting work with id {existing_work["id"]} wins (all fields compared).'
+                )
+                return  # all fields compared keep existing work
+        else:
+            print(
+                f'\nskip work with id {existing_work["id"]} because publication date is None.'
+            )
+            return  # skip work with publication_date is None
+    #######################################################################################################
     # insert current work
     sql = """
         INSERT INTO work (
@@ -165,20 +249,20 @@ def insert_work(conn: PgConnection, dataset: dict):
                 doi,
                 type_id,
                 title,
-                publication_date,
+                current_publication_date,
                 current_publication_year,
                 language_code_alpha_2_3,
                 abstract_inverted_index,
                 cited_by_count,
                 referenced_works_count,
-                authors_count,
+                current_authors_count,
                 locations_count,
                 is_open_access,
                 is_paratext,
                 is_retracted,
                 has_fulltext,
                 created_date,
-                updated_date,
+                current_updated_date,
             ),
         )
     conn.commit()
@@ -190,7 +274,7 @@ def insert_biblio(conn: PgConnection, dataset: dict):
     biblio = dataset["biblio"]
 
     # insert biblio
-    if biblio:
+    if biblio and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO biblio (work_id, volume, issue, first_page, last_page)
             VALUES (%s, %s, %s, %s, %s);
@@ -215,7 +299,7 @@ def insert_work_reference(conn: PgConnection, dataset: dict):
     referenced_works = [rw.split("/")[-1] for rw in dataset["referenced_works"]]
 
     # insert work_reference if referenced_works is present in dataset
-    if referenced_works:
+    if referenced_works and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_reference (work_id, referenced_work_id)
             VALUES (%s, %s);
@@ -251,7 +335,7 @@ def insert_work_indexed_in(conn: PgConnection, dataset: dict):
     indexed_in = dataset["indexed_in"]
 
     # insert work_indexed_in if indexed_in is present in dataset
-    if indexed_in:
+    if indexed_in and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_indexed_in (work_id, indexed_in_id)
             VALUES (%s, %s);
@@ -289,7 +373,7 @@ def insert_work_keyword(conn: PgConnection, dataset: dict):
     ]
 
     # insert work_keyword if keywords is present in dataset
-    if keyword_ids_with_score:
+    if keyword_ids_with_score and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_keyword (work_id, keyword_id, score)
             VALUES (%s, %s, %s)
@@ -402,7 +486,7 @@ def insert_work_topic(conn: PgConnection, dataset: dict):
     ]
 
     # insert work_topic if topics is present in dataset
-    if topics:
+    if topics and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_topic (work_id, topic_id, score)
             VALUES (%s, %s, %s)
@@ -551,7 +635,7 @@ def insert_work_author(conn: PgConnection, dataset: dict):
     ]
 
     # insert work_author if authors are present in dataset
-    if not all(a is None for a in authors):
+    if not all(a is None for a in authors) and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_author (work_id, author_id)
             VALUES (%s, %s)
@@ -573,7 +657,7 @@ def insert_work_author_institution(conn: PgConnection, dataset: dict):
             author_institutions.add((author_id, institution["id"].split("/")[-1]))
 
     # insert work_author_institution if author_institutions is not emtpy
-    if author_institutions:
+    if author_institutions and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_author_institution (work_id, author_id, institution_id)
             VALUES (%s, %s, %s);
@@ -614,7 +698,7 @@ def insert_work_funder(conn: PgConnection, dataset: dict):
     funders = dataset["funders"]
 
     # insert work_funder if funders are present in dataset
-    if funders:
+    if funders and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_funder (work_id, funder_id)
             VALUES (%s, %s);
@@ -634,7 +718,7 @@ def insert_work_award(conn: PgConnection, dataset: dict):
     awards = dataset["awards"]
 
     # insert work_award if awards are present in dataset
-    if awards:
+    if awards and exists_work_id(conn, work_id):
         sql = """
             INSERT INTO work_award (work_id, award_id)
             VALUES (%s, %s);
@@ -850,7 +934,7 @@ def insert_work_locations(conn: PgConnection, dataset: dict):
     locations = [(location["id"], False) for location in dataset["locations"]]
 
     # insert work_locations if locations are present in dataset
-    if locations:
+    if locations and exists_work_id(conn, work_id):
         locations[0] = (locations[0][0], True)  # set frist tuple as primary location
         sql = """
             INSERT INTO work_locations (work_id, locations_id, is_primary)
