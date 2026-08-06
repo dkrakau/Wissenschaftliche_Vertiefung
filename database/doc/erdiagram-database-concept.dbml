@@ -12,7 +12,7 @@ TABLE languages {
 
 TABLE work {
   id VARCHAR [PRIMARY KEY]
-  doi VARCHAR [note: 'not unique']
+  doi VARCHAR [UNIQUE]
   type_id VARCHAR [REF: > work_type.id]
   title VARCHAR
   publication_date TIMESTAMPTZ

@@ -5,6 +5,12 @@ import pandas as pd
 from psycopg2.extensions import connection as PgConnection
 from psycopg2.extras import Json
 
+"""
+############################################################################################
+                                HELPER FUNCTIONS
+############################################################################################
+"""
+
 
 def get_or_none(dataset: dict, key: str):
     result = None
@@ -17,12 +23,47 @@ def get_or_none(dataset: dict, key: str):
     return result
 
 
+"""
+############################################################################################
+                                GET FUNCTIONS
+############################################################################################
+"""
+
+
+def get_publication_year_by_work_doi(conn: PgConnection, doi: str):
+    query = "SELECT publication_year FROM openalex.work WHERE doi = %s;"
+    with conn.cursor() as cur:
+        cur.execute(query, (doi,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
 def get_author_id(conn: PgConnection, display_name: str):
-    query = "SELECT id FROM author WHERE display_name = %s;"
+    query = "SELECT id FROM openalex.author WHERE display_name = %s;"
     with conn.cursor() as cur:
         cur.execute(query, (display_name,))
         row = cur.fetchone()
         return row[0] if row else None
+
+
+"""
+############################################################################################
+                                DELETE FUNCTIONS
+############################################################################################
+"""
+
+
+def delete_work_by_doi(conn: PgConnection, doi: str):
+    sql = "DELETE FROM openalex.work WHERE doi = %s;"
+    with conn.cursor() as cur:
+        cur.execute(sql, (doi,))
+
+
+"""
+############################################################################################
+                                INSERT FUNCTIONS
+############################################################################################
+"""
 
 
 def insert_work_type(conn: PgConnection, dataset: dict, work_types: dict):
@@ -73,7 +114,7 @@ def insert_work(conn: PgConnection, dataset: dict):
     type_id = dataset["type"]
     title = dataset["title"]
     publication_date = get_or_none(dataset, "publication_date")
-    publication_year = get_or_none(dataset, "publication_year")
+    current_publication_year = get_or_none(dataset, "publication_year")
     language_code_alpha_2_3 = get_or_none(dataset, "language")
     abstract_inverted_index = Json(dataset["abstract_inverted_index"])
     cited_by_count = int(dataset["cited_by_count"])
@@ -86,7 +127,14 @@ def insert_work(conn: PgConnection, dataset: dict):
     has_fulltext = bool(dataset["has_fulltext"])
     created_date = dataset["created_date"]
     updated_date = dataset["updated_date"]
-    # insert work
+    # Doupicate test: Check if current publication_year is newest
+    publication_year = get_publication_year_by_work_doi(conn, doi)
+    if publication_year is not None and publication_year >= current_publication_year:
+        return  # skip if existing entrys publication year is newer.
+    # drop older work
+    if publication_year is not None:
+        delete_work_by_doi(conn, doi)
+    # insert current work
     sql = """
         INSERT INTO work (
             id,
@@ -118,7 +166,7 @@ def insert_work(conn: PgConnection, dataset: dict):
                 type_id,
                 title,
                 publication_date,
-                publication_year,
+                current_publication_year,
                 language_code_alpha_2_3,
                 abstract_inverted_index,
                 cited_by_count,
