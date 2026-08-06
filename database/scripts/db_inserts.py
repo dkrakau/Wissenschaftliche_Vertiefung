@@ -637,13 +637,13 @@ def insert_work_author(conn: PgConnection, dataset: dict):
     # insert work_author if authors are present in dataset
     if not all(a is None for a in authors) and exists_work_id(conn, work_id):
         sql = """
-            INSERT INTO work_author (work_id, author_id)
-            VALUES (%s, %s)
+            INSERT INTO work_author (work_id, author_id, author_position)
+            VALUES (%s, %s, %s)
             ON CONFLICT (work_id, author_id) DO NOTHING;
         """
         with conn.cursor() as cur:
-            for author_id in authors:
-                cur.execute(sql, (work_id, author_id))
+            for author_position, author_id in enumerate(authors, start=1):
+                cur.execute(sql, (work_id, author_id, author_position))
         conn.commit()
 
 

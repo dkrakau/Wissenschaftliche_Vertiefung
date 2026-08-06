@@ -160,7 +160,7 @@ CREATE TABLE author_country (
     PRIMARY KEY (author_id, country_code_alpha_2),
 
     CONSTRAINT fk_author_country_author
-        FOREIGN KEY (author_id) REFERENCES author (id),
+        FOREIGN KEY (author_id) REFERENCES author (id) ON DELETE CASCADE,
     CONSTRAINT fk_author_country_country
         FOREIGN KEY (country_code_alpha_2) REFERENCES country (code_alpha_2)
 );
@@ -193,7 +193,7 @@ CREATE TABLE work_author (
     CONSTRAINT fk_work_author_work
         FOREIGN KEY (work_id) REFERENCES work (id) ON DELETE CASCADE,
     CONSTRAINT fk_work_author_author
-        FOREIGN KEY (author_id) REFERENCES author (id)
+        FOREIGN KEY (author_id) REFERENCES author (id) ON DELETE CASCADE
 );
 
 CREATE TABLE work_author_institution (
@@ -206,9 +206,9 @@ CREATE TABLE work_author_institution (
     CONSTRAINT fk_work_author_institution_work
         FOREIGN KEY (work_id) REFERENCES work (id) ON DELETE CASCADE,
     CONSTRAINT fk_work_author_institution_author
-        FOREIGN KEY (author_id) REFERENCES author (id),
+        FOREIGN KEY (author_id) REFERENCES author (id) ON DELETE CASCADE,
     CONSTRAINT fk_work_author_institution_institution
-        FOREIGN KEY (institution_id) REFERENCES institution (id)
+        FOREIGN KEY (institution_id) REFERENCES institution (id) ON DELETE CASCADE
 );
 
 CREATE TABLE funder (
@@ -226,7 +226,7 @@ CREATE TABLE work_funder (
     CONSTRAINT fk_work_funder_work
         FOREIGN KEY (work_id) REFERENCES work (id) ON DELETE CASCADE,
     CONSTRAINT fk_work_funder_funder
-        FOREIGN KEY (funder_id) REFERENCES funder (id)
+        FOREIGN KEY (funder_id) REFERENCES funder (id) ON DELETE CASCADE
 );
 
 CREATE TABLE work_award (
@@ -279,11 +279,11 @@ CREATE TABLE locations (
     is_published BOOLEAN,
 
     CONSTRAINT fk_locations_source
-        FOREIGN KEY (source_id) REFERENCES source (id),
+        FOREIGN KEY (source_id) REFERENCES source (id) ON DELETE CASCADE,
     CONSTRAINT fk_locations_versions
-        FOREIGN KEY (version_id) REFERENCES versions (id),
+        FOREIGN KEY (version_id) REFERENCES versions (id) ON DELETE CASCADE,
     CONSTRAINT fk_locations_license
-        FOREIGN KEY (license_id) REFERENCES license (id)
+        FOREIGN KEY (license_id) REFERENCES license (id) ON DELETE CASCADE
 );
 
 CREATE TABLE work_locations (
