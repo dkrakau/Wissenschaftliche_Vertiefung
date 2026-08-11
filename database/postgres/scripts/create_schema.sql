@@ -148,9 +148,9 @@ CREATE TABLE country (
 
 CREATE TABLE author (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    openalex_id VARCHAR,
-    display_name VARCHAR UNIQUE,
-    orcid VARCHAR 
+    openalex_id VARCHAR UNIQUE,
+    display_name VARCHAR,
+    orcid VARCHAR UNIQUE
 );
 
 CREATE TABLE author_country (
@@ -214,12 +214,12 @@ CREATE TABLE work_author_institution (
 CREATE TABLE funder (
     id VARCHAR PRIMARY KEY,
     display_name VARCHAR,
-    ror VARCHAR
+    ror VARCHAR UNIQUE
 );
 
 CREATE TABLE work_funder (
-    work_id VARCHAR REFERENCES work (id),
-    funder_id VARCHAR REFERENCES funder (id),
+    work_id VARCHAR,
+    funder_id VARCHAR,
 
     PRIMARY KEY (work_id, funder_id),
 
@@ -230,7 +230,7 @@ CREATE TABLE work_funder (
 );
 
 CREATE TABLE work_award (
-    work_id VARCHAR REFERENCES work (id),
+    work_id VARCHAR,
     award_id VARCHAR,
 
     PRIMARY KEY (work_id, award_id),
@@ -246,7 +246,7 @@ CREATE TABLE source_type (
 
 CREATE TABLE source (
     id VARCHAR PRIMARY KEY,
-    issn_l VARCHAR,
+    issn_l VARCHAR UNIQUE,
     display_name VARCHAR,
     host_organisation VARCHAR,
     host_organisation_name VARCHAR,
@@ -281,9 +281,9 @@ CREATE TABLE locations (
     CONSTRAINT fk_locations_source
         FOREIGN KEY (source_id) REFERENCES source (id) ON DELETE CASCADE,
     CONSTRAINT fk_locations_versions
-        FOREIGN KEY (version_id) REFERENCES versions (id) ON DELETE CASCADE,
+        FOREIGN KEY (version_id) REFERENCES versions (id),
     CONSTRAINT fk_locations_license
-        FOREIGN KEY (license_id) REFERENCES license (id) ON DELETE CASCADE
+        FOREIGN KEY (license_id) REFERENCES license (id)
 );
 
 CREATE TABLE work_locations (

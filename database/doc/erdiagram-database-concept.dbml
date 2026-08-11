@@ -101,9 +101,9 @@ TABLE country {
 
 TABLE author {
   id INTEGER [PRIMARY KEY, INCREMENT]
-  openalex_id VARCHAR
-  display_name VARCHAR [UNIQUE]
-  orcid VARCHAR
+  openalex_id VARCHAR [UNIQUE]
+  display_name VARCHAR
+  orcid VARCHAR [UNIQUE]
 }
 
 TABLE author_country {
@@ -139,7 +139,7 @@ TABLE work_author_institution {
 TABLE funder {
   id VARCHAR [PRIMARY KEY]
   display_name VARCHAR
-  ror VARCHAR [note: 'not unique']
+  ror VARCHAR [UNIQUE]
 }
 
 TABLE work_funder {
@@ -159,7 +159,7 @@ TABLE source_type {
 
 TABLE source {
   id VARCHAR [PRIMARY KEY]
-  issn_l VARCHAR [note: 'not unique']
+  issn_l VARCHAR [UNIQUE]
   display_name VARCHAR
   host_organisation VARCHAR
   host_organisation_name VARCHAR
