@@ -33,22 +33,120 @@ def parse_datetime_utc(s: str) -> datetime:
 
 """
 ############################################################################################
+                                SKIP FUNCTIONS
+############################################################################################
+"""
+
+
+def skip_work(conn: PgConnection, dataset: dict) -> bool:
+    # extract data
+    work_id = dataset["id"].split("/")[-1]
+    doi = get_or_none(dataset, "doi")
+    title = dataset["title"]
+    current_publication_date = get_or_none(dataset, "publication_date")
+    current_publication_year = get_or_none(dataset, "publication_year")
+    current_authors_count = len(dataset["authorships"])
+    current_updated_date = dataset["updated_date"]
+    # Duplication check 1: same DOI
+    publication_year = get_publication_year_by_work_doi(conn, doi)
+    if publication_year is not None:  # same DOI exists
+        if publication_year >= current_publication_year:
+            print(f"\nskip current work with id {work_id}")
+            return True  # keep work with existing DOI
+        delete_work_by_doi(conn, doi)  # delete existing work
+        print(f"\ndeleted existing work with doi: {doi}")
+    # Duplication check 2: same normalized title
+    if exists_normalized_title(conn, title):  # same title exists
+        existing_work = get_work_by_title(conn, title)
+        if current_publication_date is not None:
+            comparisons = [
+                (
+                    "publication_date",
+                    existing_work["publication_date"],
+                    parse_datetime_utc(current_publication_date),
+                ),
+                (
+                    "authors_count",
+                    existing_work["authors_count"],
+                    current_authors_count,
+                ),
+                (
+                    "updated_date",
+                    existing_work["updated_date"],
+                    parse_datetime_utc(current_updated_date),
+                ),
+            ]
+            for fieldname, existing_value, current_value in comparisons:
+                if current_value > existing_value:
+                    delete_work_by_id(conn, existing_work["id"])
+                    print(
+                        f'\ndeleted work {existing_work["id"]} with older values for {fieldname}.'
+                    )
+                    break
+                if current_value < existing_value:
+                    print(
+                        f'\nexisting work with id {existing_work["id"]} wins over compairissons.'
+                    )
+                    return True  # existing work wins over compairisons
+            else:
+                print(
+                    f'\nexisting work with id {existing_work["id"]} wins (all fields compared).'
+                )
+                return True  # all fields compared keep existing work
+        else:
+            print(
+                f'\nskip work with id {existing_work["id"]} because publication date is None.'
+            )
+            return True  # skip work with publication_date is None
+    return False  # insert work
+
+
+"""
+############################################################################################
                                 QUERY FUNCTIONS
 ############################################################################################
 """
 
 
-def exists_normalized_title(conn: PgConnection, title: str):
+def exists_normalized_title(conn: PgConnection, title: str) -> bool:
     query = "SELECT EXISTS ( SELECT 1 FROM openalex.work WHERE lower(trim(title)) = lower(trim(%s)) );"
     with conn.cursor() as cur:
         cur.execute(query, (title,))
         return cur.fetchone()[0]
 
 
-def exists_work_id(conn: PgConnection, work_id: str):
+def exists_work_id(conn: PgConnection, work_id: str) -> bool:
     query = "SELECT EXISTS ( SELECT 1 FROM openalex.work WHERE id = %s );"
     with conn.cursor() as cur:
         cur.execute(query, (work_id,))
+        return cur.fetchone()[0]
+
+
+def exists_institution_id(conn: PgConnection, institution_id: str) -> bool:
+    query = "SELECT EXISTS ( SELECT 1 FROM openalex.institution WHERE id = %s );"
+    with conn.cursor() as cur:
+        cur.execute(query, (institution_id,))
+        return cur.fetchone()[0]
+
+
+def exists_funder_id(conn: PgConnection, funder_id: str) -> bool:
+    query = "SELECT EXISTS ( SELECT 1 FROM openalex.funder WHERE id = %s );"
+    with conn.cursor() as cur:
+        cur.execute(query, (funder_id,))
+        return cur.fetchone()[0]
+
+
+def exists_source_id(conn: PgConnection, source_id: str) -> bool:
+    query = "SELECT EXISTS ( SELECT 1 FROM openalex.source WHERE id = %s );"
+    with conn.cursor() as cur:
+        cur.execute(query, (source_id,))
+        return cur.fetchone()[0]
+
+
+def exists_location_id(conn: PgConnection, location_id: str) -> bool:
+    query = "SELECT EXISTS ( SELECT 1 FROM openalex.locations WHERE id = %s );"
+    with conn.cursor() as cur:
+        cur.execute(query, (location_id,))
         return cur.fetchone()[0]
 
 
@@ -68,12 +166,59 @@ def get_publication_year_by_work_doi(conn: PgConnection, doi: str):
         return row[0] if row else None
 
 
-def get_author_id(conn: PgConnection, display_name: str):
-    query = "SELECT id FROM openalex.author WHERE display_name = %s;"
+def get_author_id_by_orcid_and_openalex_id(
+    conn: PgConnection, orcid: str, openalex_id: str
+):
+    query = "SELECT id FROM openalex.author WHERE orcid = %s OR (orcid IS NULL AND openalex_id = %s);"
     with conn.cursor() as cur:
-        cur.execute(query, (display_name,))
+        cur.execute(
+            query,
+            (
+                orcid,
+                openalex_id,
+            ),
+        )
         row = cur.fetchone()
         return row[0] if row else None
+
+
+def get_author_id_by_display_name(conn: PgConnection, display_name: str):
+    query = "SELECT id FROM openalex.author WHERE display_name = %s;"
+    with conn.cursor() as cur:
+        cur.execute(
+            query,
+            (display_name,),
+        )
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
+def get_author_id_by_display_name_and_institutions(
+    conn: PgConnection, display_name: str, institution_ids: list
+):
+    if not institution_ids:
+        return None
+
+    query = """
+        SELECT DISTINCT a.id
+        FROM openalex.author a
+        JOIN openalex.work_author_institution wai ON wai.author_id = a.id
+        WHERE LOWER(TRIM(a.display_name)) = LOWER(TRIM(%s))
+            AND wai.institution_id = ANY(%s)
+            AND a.openalex_id IS NULL;
+    """
+    with conn.cursor() as cur:
+        cur.execute(query, (display_name, institution_ids))
+        rows = cur.fetchall()
+
+        if not rows:
+            return None
+
+        if len(rows) > 1:
+            print(
+                f"WARNING: ambiguous match for '{display_name}' -> {len(rows)} candidates: {[r[0] for r in rows]}"
+            )
+        return rows[0][0]
 
 
 """
@@ -163,61 +308,7 @@ def insert_work(conn: PgConnection, dataset: dict):
     has_fulltext = bool(dataset["has_fulltext"])
     created_date = dataset["created_date"]
     current_updated_date = dataset["updated_date"]
-    #######################################################################################################
-    #   DUPLICATES IN WORKS
-    #######################################################################################################
-    # Duplication check 1: same DOI
-    publication_year = get_publication_year_by_work_doi(conn, doi)
-    if publication_year is not None:  # same DOI exists
-        if publication_year >= current_publication_year:
-            print(f"\nskip current work with id {work_id}")
-            return  # keep work with existing DOI
-        delete_work_by_doi(conn, doi)  # delete existing work
-        print(f"\ndeleted existing work with doi: {doi}")
-    # Duplication check 2: same normalized title
-    if exists_normalized_title(conn, title):  # same title exists
-        existing_work = get_work_by_title(conn, title)
-        if current_publication_date is not None:
-            comparisons = [
-                (
-                    "publication_date",
-                    existing_work["publication_date"],
-                    parse_datetime_utc(current_publication_date),
-                ),
-                (
-                    "authors_count",
-                    existing_work["authors_count"],
-                    current_authors_count,
-                ),
-                (
-                    "updated_date",
-                    existing_work["updated_date"],
-                    parse_datetime_utc(current_updated_date),
-                ),
-            ]
-            for fieldname, existing_value, current_value in comparisons:
-                if current_value > existing_value:
-                    delete_work_by_id(conn, existing_work["id"])
-                    print(
-                        f'\ndeleted work {existing_work["id"]} with older values for {fieldname}.'
-                    )
-                    break
-                if current_value < existing_value:
-                    print(
-                        f'\nexisting work with id {existing_work["id"]} wins over compairissons.'
-                    )
-                    return  # existing work wins over compairisons
-            else:
-                print(
-                    f'\nexisting work with id {existing_work["id"]} wins (all fields compared).'
-                )
-                return  # all fields compared keep existing work
-        else:
-            print(
-                f'\nskip work with id {existing_work["id"]} because publication date is None.'
-            )
-            return  # skip work with publication_date is None
-    #######################################################################################################
+
     # insert current work
     sql = """
         INSERT INTO work (
@@ -520,38 +611,98 @@ def insert_country(conn: PgConnection, dataset: dict, country_types: dict):
 
 
 def insert_author(conn: PgConnection, dataset: dict):
+    authors_with_institution_ids = []
     # extract data
-    authors = [
-        (
+    authors = []
+    for authorship in dataset["authorships"]:
+        institutions_ids = set()
+        for institution in authorship["institutions"]:
+            institutions_ids.add(institution["id"].split("/")[-1])
+        authors.append(
             (
-                authorship["author"]["id"].split("/")[-1]
-                if authorship["author"]["id"]
-                else None
-            ),
-            authorship["author"]["display_name"],
-            authorship["author"]["orcid"],
+                (
+                    authorship["author"]["id"].split("/")[-1]
+                    if authorship["author"]["id"]
+                    else None
+                ),
+                authorship["author"]["display_name"],
+                authorship["author"]["orcid"],
+                list(institutions_ids),
+            )
         )
-        for authorship in dataset["authorships"]
-    ]
 
     # insert all authors if not already present
     if authors:
-        sql = """
+        sql_insert_author = """
             INSERT INTO author (openalex_id, display_name, orcid)
             VALUES (%s, %s, %s)
-            ON CONFLICT (display_name) DO NOTHING;
+            RETURNING id;
+        """
+        sql_update_author_by_id = """
+            UPDATE author
+            SET openalex_id = COALESCE(%s, openalex_id),
+                display_name = COALESCE(%s, display_name),
+                orcid = COALESCE(%s, orcid) 
+            WHERE id = %s
+            RETURNING id;
         """
         with conn.cursor() as cur:
-            for openalex_id, display_name, orcid in authors:
-                cur.execute(sql, (openalex_id, display_name, orcid))
+            for openalex_id, display_name, orcid, institution_ids in authors:
+                if openalex_id or orcid:
+                    # look for an existing row matching either identifier
+                    cur.execute(
+                        """
+                            SELECT id FROM author
+                            WHERE (%s IS NOT NULL AND openalex_id = %s)
+                            OR (%s IS NOT NULL AND orcid = %s);
+                        """,
+                        (openalex_id, openalex_id, orcid, orcid),
+                    )
+                    existing = cur.fetchone()
+
+                    if existing:
+                        cur.execute(
+                            sql_update_author_by_id,
+                            (openalex_id, display_name, orcid, existing[0]),
+                        )
+                        author_id = cur.fetchone()[0]
+                    else:
+                        cur.execute(
+                            sql_insert_author, (openalex_id, display_name, orcid)
+                        )
+                        author_id = cur.fetchone()[0]
+                else:
+                    # no openalex_id, no orcid -> try display_name + institution overlap first
+                    author_id = get_author_id_by_display_name_and_institutions(
+                        conn, display_name, institution_ids
+                    )
+                    if author_id is None:
+                        # fall back to display_name only match if no institution overlap found
+                        author_id = get_author_id_by_display_name(conn, display_name)
+                    if author_id is None:
+                        cur.execute(
+                            sql_insert_author, (openalex_id, display_name, orcid)
+                        )
+                        author_id = cur.fetchone()[0]
+                authors_with_institution_ids.append((author_id, institution_ids))
         conn.commit()
+
+    return authors_with_institution_ids
 
 
 def insert_author_country(conn: PgConnection, dataset: dict):
     # extract data
     author_counties = set()
     for authorship in dataset["authorships"]:
-        author_id = get_author_id(conn, authorship["author"]["display_name"])
+        author_id = get_author_id_by_orcid_and_openalex_id(
+            conn,
+            authorship["author"]["orcid"],
+            (
+                authorship["author"]["id"].split("/")[-1]
+                if authorship["author"]["id"]
+                else None
+            ),
+        )
         for country in authorship["countries"]:
             author_counties.add((author_id, country))
     # insert all author_counties if not already present
@@ -563,7 +714,8 @@ def insert_author_country(conn: PgConnection, dataset: dict):
         """
         with conn.cursor() as cur:
             for author_country in author_counties:
-                cur.execute(sql, (author_country[0], author_country[1]))
+                if author_country[0] is not None:
+                    cur.execute(sql, (author_country[0], author_country[1]))
         conn.commit()
 
 
@@ -609,7 +761,7 @@ def insert_institution(conn: PgConnection, dataset: dict):
         sql = """
             INSERT INTO institution (id, display_name, ror, institution_type_id, country_code_alpha_2)
             VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING;
+            ON CONFLICT (ror) DO NOTHING;
         """
         with conn.cursor() as cur:
             for (
@@ -619,53 +771,71 @@ def insert_institution(conn: PgConnection, dataset: dict):
                 institution_type_id,
                 country_code_alpha_2,
             ) in institutions:
-                cur.execute(
-                    sql,
-                    (id, display_name, ror, institution_type_id, country_code_alpha_2),
-                )
+                if not exists_institution_id(conn, id):  # duplicate check
+                    cur.execute(
+                        sql,
+                        (
+                            id,
+                            display_name,
+                            ror,
+                            institution_type_id,
+                            country_code_alpha_2,
+                        ),
+                    )
         conn.commit()
 
 
-def insert_work_author(conn: PgConnection, dataset: dict):
+def insert_work_author(
+    conn: PgConnection, dataset: dict, authors_with_institution_ids: list
+):
     # extract data
     work_id = dataset["id"].split("/")[-1]
-    authors = [
-        get_author_id(conn, author["author"]["display_name"])
-        for author in dataset["authorships"]
-    ]
-
-    # insert work_author if authors are present in dataset
-    if not all(a is None for a in authors) and exists_work_id(conn, work_id):
-        sql = """
-            INSERT INTO work_author (work_id, author_id, author_position)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (work_id, author_id) DO NOTHING;
-        """
-        with conn.cursor() as cur:
-            for author_position, author_id in enumerate(authors, start=1):
-                cur.execute(sql, (work_id, author_id, author_position))
-        conn.commit()
+    sql = """
+        INSERT INTO work_author (work_id, author_id, author_position)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (work_id, author_id) DO NOTHING;
+    """
+    with conn.cursor() as cur:
+        for author_position, ai in enumerate(authors_with_institution_ids, start=1):
+            if ai is not None:
+                cur.execute(sql, (work_id, ai[0], author_position))
+    conn.commit()
 
 
-def insert_work_author_institution(conn: PgConnection, dataset: dict):
+def insert_work_author_institution(
+    conn: PgConnection, dataset: dict, authors_with_institution_ids: list
+):
     # extract data
     work_id = dataset["id"].split("/")[-1]
+
+    """'
     author_institutions = set()
     for authorship in dataset["authorships"]:
-        author_id = get_author_id(conn, authorship["author"]["display_name"])
+        author_id = get_author_id_by_orcid_and_openalex_id(
+            conn,
+            authorship["author"]["orcid"],
+            (
+                authorship["author"]["id"].split("/")[-1]
+                if authorship["author"]["id"]
+                else None
+            ),
+        )
         for institution in authorship["institutions"]:
             author_institutions.add((author_id, institution["id"].split("/")[-1]))
+    """
 
     # insert work_author_institution if author_institutions is not emtpy
-    if author_institutions and exists_work_id(conn, work_id):
-        sql = """
-            INSERT INTO work_author_institution (work_id, author_id, institution_id)
-            VALUES (%s, %s, %s);
-        """
-        with conn.cursor() as cur:
-            for author_id, institution_id in author_institutions:
+    # if author_institutions and exists_work_id(conn, work_id):
+    sql = """
+        INSERT INTO work_author_institution (work_id, author_id, institution_id)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (work_id, author_id, institution_id) DO NOTHING;
+    """
+    with conn.cursor() as cur:
+        for author_id, institution_ids in authors_with_institution_ids:
+            for institution_id in institution_ids:
                 cur.execute(sql, (work_id, author_id, institution_id))
-        conn.commit()
+    conn.commit()
 
 
 def insert_funder(conn: PgConnection, dataset: dict):
@@ -677,18 +847,20 @@ def insert_funder(conn: PgConnection, dataset: dict):
         sql = """
             INSERT INTO funder (id, display_name, ror)
             VALUES (%s, %s, %s)
-            ON CONFLICT (id) DO NOTHING;
+            ON CONFLICT (ror) DO NOTHING;
         """
         with conn.cursor() as cur:
             for funder in funders:
-                cur.execute(
-                    sql,
-                    (
-                        funder["id"].split("/")[-1],
-                        funder["display_name"],
-                        funder["ror"],
-                    ),
-                )
+                funder_id = funder["id"].split("/")[-1]
+                if not exists_funder_id(conn, funder_id):  # duplicate check
+                    cur.execute(
+                        sql,
+                        (
+                            funder_id,
+                            funder["display_name"],
+                            funder["ror"],
+                        ),
+                    )
         conn.commit()
 
 
@@ -792,7 +964,7 @@ def insert_source(conn: PgConnection, dataset: dict):
                     source_type_id,
                     is_open_access)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO NOTHING;
+                ON CONFLICT (issn_l) DO NOTHING;
             """
             with conn.cursor() as cur:
                 for (
@@ -804,18 +976,19 @@ def insert_source(conn: PgConnection, dataset: dict):
                     source_type_id,
                     is_open_access,
                 ) in sources:
-                    cur.execute(
-                        sql,
-                        (
-                            id,
-                            issn_l,
-                            display_name,
-                            host_organisation,
-                            host_organisation_name,
-                            source_type_id,
-                            is_open_access,
-                        ),
-                    )
+                    if not exists_source_id(conn, id):  # duplicate check
+                        cur.execute(
+                            sql,
+                            (
+                                id,
+                                issn_l,
+                                display_name,
+                                host_organisation,
+                                host_organisation_name,
+                                source_type_id,
+                                is_open_access,
+                            ),
+                        )
             conn.commit()
 
 
@@ -911,20 +1084,21 @@ def insert_locations(conn: PgConnection, dataset: dict):
                 is_accepted,
                 is_published,
             ) in locations:
-                cur.execute(
-                    sql,
-                    (
-                        id,
-                        source_id,
-                        pdf_url,
-                        landing_page_url,
-                        version_id,
-                        license_id,
-                        is_open_access,
-                        is_accepted,
-                        is_published,
-                    ),
-                )
+                if source_id and exists_source_id(conn, source_id):
+                    cur.execute(
+                        sql,
+                        (
+                            id,
+                            source_id,
+                            pdf_url,
+                            landing_page_url,
+                            version_id,
+                            license_id,
+                            is_open_access,
+                            is_accepted,
+                            is_published,
+                        ),
+                    )
         conn.commit()
 
 
@@ -943,5 +1117,6 @@ def insert_work_locations(conn: PgConnection, dataset: dict):
         """
         with conn.cursor() as cur:
             for locations_id, is_primary in locations:
-                cur.execute(sql, (work_id, locations_id, is_primary))
+                if exists_location_id(conn, locations_id):
+                    cur.execute(sql, (work_id, locations_id, is_primary))
         conn.commit()

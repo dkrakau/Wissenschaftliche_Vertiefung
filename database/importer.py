@@ -8,7 +8,6 @@ from scripts.connect import connect
 from scripts.load_types import *
 from scripts.db_inserts import *
 from scripts.utils import *
-from urllib.parse import urlsplit, urlunsplit
 
 
 def main():
@@ -45,49 +44,55 @@ def main():
     line_counts = len(df)
     i = 0
     for dataset in df.to_dict(orient="records"):
-        # for i, dataset in enumerate(df.iloc[3780:].to_dict(orient="records"), start=3781):  # for debugging
+        # for i, dataset in enumerate(df.iloc[1180:].to_dict(orient="records"), start=1181):  # for debugging
 
         # Convert work url to api work url
-        url = dataset["id"]
-        parts = urlsplit(url)
-        parts = parts._replace(netloc="api." + parts.netloc)
-        work_api_url = urlunsplit(parts)
-
-        print(work_api_url, end=" ")
+        print(work_url_to_api_url(dataset["id"]), end=" ")
 
         # inserts
-        insert_work_type(conn, dataset, work_types)
-        insert_languages(
-            conn, dataset, language_codes_aplpha2_types, language_codes_aplpha3_types
-        )
-        insert_work(conn, dataset)
-        insert_biblio(conn, dataset)
-        insert_work_reference(conn, dataset)
-        insert_indexed_in(conn, dataset, indexed_in_types)
-        insert_work_indexed_in(conn, dataset)
-        insert_keyword(conn, dataset)
-        insert_work_keyword(conn, dataset)
-        insert_domain(conn, dataset)
-        insert_field(conn, dataset)
-        insert_subfield(conn, dataset)
-        insert_topic(conn, dataset)
-        insert_work_topic(conn, dataset)
-        insert_country(conn, dataset, country_types)
-        insert_author(conn, dataset)
-        insert_author_country(conn, dataset)
-        insert_institution_type(conn, dataset, institution_types)
-        insert_institution(conn, dataset)
-        insert_work_author(conn, dataset)
-        insert_work_author_institution(conn, dataset)
-        insert_funder(conn, dataset)
-        insert_work_funder(conn, dataset)
-        insert_work_award(conn, dataset)
-        insert_source_type(conn, dataset, source_types)
-        insert_source(conn, dataset)
-        insert_versions(conn, dataset, version_types)
-        insert_license(conn, dataset, license_types)
-        insert_locations(conn, dataset)
-        insert_work_locations(conn, dataset)
+        if not skip_work(conn, dataset):
+            # tables related to work
+            insert_work_type(conn, dataset, work_types)
+            insert_languages(
+                conn,
+                dataset,
+                language_codes_aplpha2_types,
+                language_codes_aplpha3_types,
+            )
+            insert_indexed_in(conn, dataset, indexed_in_types)
+            insert_domain(conn, dataset)
+            insert_field(conn, dataset)
+            insert_subfield(conn, dataset)
+            insert_topic(conn, dataset)
+            insert_keyword(conn, dataset)
+            insert_funder(conn, dataset)
+            insert_work(conn, dataset)
+            insert_biblio(conn, dataset)
+            # tables related to author and institution
+            insert_country(conn, dataset, country_types)
+            insert_institution_type(conn, dataset, institution_types)
+            insert_institution(conn, dataset)
+            authors_with_institution_ids = insert_author(conn, dataset)
+            # tables related to location and source
+            insert_source_type(conn, dataset, source_types)
+            insert_source(conn, dataset)
+            insert_versions(conn, dataset, version_types)
+            insert_license(conn, dataset, license_types)
+            insert_locations(conn, dataset)
+
+            # references
+            insert_author_country(conn, dataset)
+            insert_work_reference(conn, dataset)
+            insert_work_indexed_in(conn, dataset)
+            insert_work_keyword(conn, dataset)
+            insert_work_topic(conn, dataset)
+            insert_work_funder(conn, dataset)
+            insert_work_award(conn, dataset)
+            insert_work_locations(conn, dataset)
+            insert_work_author(conn, dataset, authors_with_institution_ids)
+            insert_work_author_institution(conn, dataset, authors_with_institution_ids)
+
+        # delete unreferenced entries in author, institution, country, institution_type, indexed_in,
 
         i = i + 1
         print(f"processed ({i}/{line_counts})")
