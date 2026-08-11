@@ -1,3 +1,6 @@
+from urllib.parse import urlsplit, urlunsplit
+
+
 def parse_abstract(inverted_index: dict) -> str:
     if not inverted_index:
         return ""
@@ -10,3 +13,9 @@ def parse_abstract(inverted_index: dict) -> str:
             words[pos] = word
 
     return " ".join(words)
+
+
+def work_url_to_api_url(work_url: str) -> str:
+    parts = urlsplit(work_url)
+    parts = parts._replace(netloc="api." + parts.netloc)
+    return urlunsplit(parts)
