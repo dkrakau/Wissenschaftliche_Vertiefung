@@ -31,6 +31,33 @@ def parse_datetime_utc(s: str) -> datetime:
     return dt
 
 
+def clean_up(conn: PgConnection):
+    delete_unreferenced_indexes(conn)
+    delete_unreferenced_authors(conn)
+    delete_unreferenced_institutions(conn)
+    delete_unreferenced_funders(conn)
+    delete_unreferenced_keywords(conn)
+    delete_unreferenced_locations(conn)
+    delete_unreferenced_topics(conn)
+
+    delete_unreferenced_institution_types(conn)
+    delete_unreferenced_countries(conn)
+    delete_unreferenced_sources(conn)
+    delete_unreferenced_licenses(conn)
+    delete_unreferenced_versions(conn)
+    delete_unreferenced_subfields(conn)
+
+    delete_unreferenced_source_types(conn)
+    delete_unreferenced_fields(conn)
+
+    delete_unreferenced_domain(conn)
+
+    delete_unreferenced_work_types(conn)
+    delete_unreferenced_languages(conn)
+
+    delete_unreferenced_work_references(conn)
+
+
 """
 ############################################################################################
                                 SKIP FUNCTIONS
@@ -129,11 +156,14 @@ def exists_institution_id(conn: PgConnection, institution_id: str) -> bool:
         return cur.fetchone()[0]
 
 
-def exists_funder_id(conn: PgConnection, funder_id: str) -> bool:
-    query = "SELECT EXISTS ( SELECT 1 FROM openalex.funder WHERE id = %s );"
+def find_funder_by_ror(conn: PgConnection, ror: str) -> str:
+    query = "SELECT id FROM openalex.funder WHERE ror = %s;"
     with conn.cursor() as cur:
-        cur.execute(query, (funder_id,))
-        return cur.fetchone()[0]
+        cur.execute(query, (ror,))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        return row[0]
 
 
 def exists_source_id(conn: PgConnection, source_id: str) -> bool:
@@ -232,12 +262,147 @@ def delete_work_by_id(conn: PgConnection, work_id: str):
     sql = "DELETE FROM openalex.work WHERE id = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (work_id,))
+    conn.commit()
 
 
 def delete_work_by_doi(conn: PgConnection, doi: str):
     sql = "DELETE FROM openalex.work WHERE doi = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (doi,))
+    conn.commit()
+
+
+def delete_unreferenced_indexes(conn: PgConnection):
+    sql = "DELETE FROM openalex.indexed_in WHERE NOT EXISTS (SELECT 1 FROM openalex.work_indexed_in wii WHERE wii.indexed_in_id = indexed_in.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_authors(conn: PgConnection):
+    sql = "DELETE FROM openalex.author WHERE NOT EXISTS (SELECT 1 FROM openalex.work_author wa WHERE wa.author_id = author.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_institutions(conn: PgConnection):
+    sql = "DELETE FROM openalex.institution WHERE NOT EXISTS (SELECT 1 FROM openalex.work_author_institution wai WHERE wai.institution_id = institution.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_institution_types(conn: PgConnection):
+    sql = "DELETE FROM openalex.institution_type WHERE NOT EXISTS (SELECT 1 FROM openalex.institution i WHERE i.institution_type_id = institution_type.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_countries(conn: PgConnection):
+    sql = "DELETE FROM openalex.country WHERE NOT EXISTS (SELECT 1 FROM openalex.author_country ac WHERE ac.country_code_alpha_2 = country.code_alpha_2) AND NOT EXISTS (SELECT 1 FROM openalex.institution i WHERE i.country_code_alpha_2 = country.code_alpha_2);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_funders(conn: PgConnection):
+    sql = "DELETE FROM openalex.funder WHERE NOT EXISTS (SELECT 1 FROM openalex.work_funder wf WHERE wf.funder_id = funder.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_keywords(conn: PgConnection):
+    sql = "DELETE FROM openalex.keyword WHERE NOT EXISTS (SELECT 1 FROM openalex.work_keyword wk WHERE wk.keyword_id = keyword.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_locations(conn: PgConnection):
+    sql = "DELETE FROM openalex.locations WHERE NOT EXISTS (SELECT 1 FROM openalex.work_locations wl WHERE wl.locations_id = locations.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_sources(conn: PgConnection):
+    sql = "DELETE FROM openalex.source WHERE NOT EXISTS (SELECT 1 FROM openalex.locations lo WHERE lo.source_id = source.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_source_types(conn: PgConnection):
+    sql = "DELETE FROM openalex.source_type WHERE NOT EXISTS (SELECT 1 FROM openalex.source s WHERE s.source_type_id = source_type.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_licenses(conn: PgConnection):
+    sql = "DELETE FROM openalex.license WHERE NOT EXISTS (SELECT 1 FROM openalex.locations lo WHERE lo.license_id = license.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_versions(conn: PgConnection):
+    sql = "DELETE FROM openalex.versions WHERE NOT EXISTS (SELECT 1 FROM openalex.locations lo WHERE lo.version_id = versions.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_work_types(conn: PgConnection):
+    sql = "DELETE FROM openalex.work_type WHERE NOT EXISTS (SELECT 1 FROM openalex.work w WHERE w.type_id = work_type.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_languages(conn: PgConnection):
+    sql = "DELETE FROM openalex.languages WHERE NOT EXISTS (SELECT 1 FROM openalex.work w WHERE w.language_code_alpha_2_3 = languages.code_alpha_2_3);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_topics(conn: PgConnection):
+    sql = "DELETE FROM openalex.topic WHERE NOT EXISTS (SELECT 1 FROM openalex.work_topic wt WHERE wt.topic_id = topic.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_subfields(conn: PgConnection):
+    sql = "DELETE FROM openalex.subfield WHERE NOT EXISTS (SELECT 1 FROM openalex.topic t WHERE t.subfield_id = subfield.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_fields(conn: PgConnection):
+    sql = "DELETE FROM openalex.field WHERE NOT EXISTS (SELECT 1 FROM openalex.subfield sf WHERE sf.field_id = field.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_domain(conn: PgConnection):
+    sql = "DELETE FROM openalex.domain WHERE NOT EXISTS (SELECT 1 FROM openalex.field f WHERE f.domain_id = domain.id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def delete_unreferenced_work_references(conn: PgConnection):
+    sql = "DELETE FROM openalex.work_reference WHERE NOT EXISTS (SELECT 1 FROM openalex.work w WHERE w.id = work_reference.referenced_work_id);"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
 
 
 """
@@ -839,6 +1004,7 @@ def insert_work_author_institution(
 
 
 def insert_funder(conn: PgConnection, dataset: dict):
+    funder_ids = []
     # extract data
     funders = dataset["funders"]
 
@@ -847,39 +1013,48 @@ def insert_funder(conn: PgConnection, dataset: dict):
         sql = """
             INSERT INTO funder (id, display_name, ror)
             VALUES (%s, %s, %s)
-            ON CONFLICT (ror) DO NOTHING;
+            ON CONFLICT (id) DO UPDATE
+                SET ror = COALESCE(openalex.funder.ror, EXCLUDED.ror)
+            RETURNING id;
         """
         with conn.cursor() as cur:
             for funder in funders:
-                funder_id = funder["id"].split("/")[-1]
-                if not exists_funder_id(conn, funder_id):  # duplicate check
+                id = funder["id"].split("/")[-1]
+                ror = funder["ror"]
+                existing_id = find_funder_by_ror(conn, ror)
+                if existing_id:
+                    funder_ids.append(existing_id)
+                else:
                     cur.execute(
                         sql,
                         (
-                            funder_id,
+                            id,
                             funder["display_name"],
-                            funder["ror"],
+                            ror,
                         ),
                     )
+                    funder_id = cur.fetchone()[0]
+                    funder_ids.append(funder_id)
         conn.commit()
+    return funder_ids
 
 
-def insert_work_funder(conn: PgConnection, dataset: dict):
+def insert_work_funder(conn: PgConnection, dataset: dict, funder_ids: list):
     # extract data
-    work_id = dataset["id"]
-    funders = dataset["funders"]
+    work_id = dataset["id"].split("/")[-1]
 
     # insert work_funder if funders are present in dataset
-    if funders and exists_work_id(conn, work_id):
+    if funder_ids:
         sql = """
             INSERT INTO work_funder (work_id, funder_id)
-            VALUES (%s, %s);
+            VALUES (%s, %s)
+            ON CONFLICT (work_id, funder_id) DO NOTHING;
         """
         with conn.cursor() as cur:
-            for funder in funders:
+            for funder_id in funder_ids:
                 cur.execute(
                     sql,
-                    (work_id.split("/")[-1], funder["id"].split("/")[-1]),
+                    (work_id, funder_id),
                 )
         conn.commit()
 

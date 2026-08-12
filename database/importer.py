@@ -65,7 +65,7 @@ def main():
             insert_subfield(conn, dataset)
             insert_topic(conn, dataset)
             insert_keyword(conn, dataset)
-            insert_funder(conn, dataset)
+            funder_ids = insert_funder(conn, dataset)
             insert_work(conn, dataset)
             insert_biblio(conn, dataset)
             # tables related to author and institution
@@ -86,13 +86,14 @@ def main():
             insert_work_indexed_in(conn, dataset)
             insert_work_keyword(conn, dataset)
             insert_work_topic(conn, dataset)
-            insert_work_funder(conn, dataset)
+            insert_work_funder(conn, dataset, funder_ids)
             insert_work_award(conn, dataset)
             insert_work_locations(conn, dataset)
             insert_work_author(conn, dataset, authors_with_institution_ids)
             insert_work_author_institution(conn, dataset, authors_with_institution_ids)
 
-        # delete unreferenced entries in author, institution, country, institution_type, indexed_in,
+        # delete unreferenced entries (clean up)
+        clean_up(conn)
 
         i = i + 1
         print(f"processed ({i}/{line_counts})")
