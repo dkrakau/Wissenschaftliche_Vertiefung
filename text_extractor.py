@@ -1,9 +1,6 @@
-from pathlib import Path
+import argparse
 import pymupdf
-
-PDF_DIR = Path("pdf/open_access")
-TXT_DIR = Path("pdf/open_access/text")
-TXT_DIR.mkdir(parents=True, exist_ok=True)
+from pathlib import Path
 
 
 def extract_text_from_pdf(pdf_path: Path) -> str:
@@ -14,7 +11,14 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
 
 
 def main():
-    pdf_files = sorted(PDF_DIR.glob("*.pdf"))
+    parser = argparse.ArgumentParser(description="Process a folder with pdfs inside.")
+    parser.add_argument("folder", help="Path to pdf folder to process")
+    args = parser.parse_args()
+
+    pdf_folder = Path(args.folder)
+    pdf_folder.mkdir(parents=True, exist_ok=True)
+
+    pdf_files = sorted(pdf_folder.glob("*.pdf"))
     print(f"{len(pdf_files)} PDF files found.")
 
     succeeded = 0
@@ -22,7 +26,7 @@ def main():
 
     max_signs = 0
     for i, pdf_path in enumerate(pdf_files, start=1):
-        txt_path = TXT_DIR / f"{pdf_path.stem}.txt"
+        txt_path = pdf_folder / "text" / f"{pdf_path.stem}.txt"
 
         if txt_path.exists():
             print(
@@ -50,3 +54,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# py text_extractor.py pdf/open_access
+# py text_extractor.py pdf/not_open_access
