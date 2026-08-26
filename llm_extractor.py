@@ -1,3 +1,4 @@
+import argparse
 import json
 import time
 import requests
@@ -100,6 +101,12 @@ def analyse_text(text: str, model: str = MODEL_NAME) -> dict:
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Process a folder with text files inside."
+    )
+    parser.add_argument("folder", help="Path to text files folder to process")
+    args = parser.parse_args()
+    TEXT_FOLDER = args.folder
 
     start_timestamp = time.time()
     start_time = datetime.fromtimestamp(
@@ -130,3 +137,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# py llm_extractor pdf/open_access/text
+# py llm_extractor pdf/not_open_access/text
