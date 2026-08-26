@@ -1,0 +1,91 @@
+<mxfile host="65bd71144e">
+    <diagram id="yxypTZxRMI5ks84V4dAq" name="Page-1">
+        <mxGraphModel dx="1716" dy="896" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="56" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="140" y="70" width="360" height="260" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="PostgresDB" style="shape=datastore;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="275" y="540" width="90" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="41" value="OpenAlex-Websuche" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="256.25" y="80" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="42" value="&lt;b&gt;Search fields&lt;/b&gt;&lt;br&gt;&lt;div&gt;title, abstract, fulltext&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="152.5" y="120" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="51" value="&lt;b&gt;Type&lt;/b&gt;&lt;div&gt;article&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="325" y="120" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="52" value="&lt;b&gt;Stemming&lt;/b&gt;&lt;div&gt;enabled&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="152.5" y="190" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="53" value="&lt;b&gt;Operators&lt;/b&gt;&lt;div&gt;enabeld (keyword-search)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="325" y="190" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="54" value="&lt;b&gt;Search terms (OR-combined)&lt;/b&gt;&lt;div&gt;vector database, vectordatabase, vector-db, vector db, vectordb, vektordatenbank, vektor-db, vektor db&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="152.5" y="260" width="337.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="57" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="141.25" y="650" width="360" height="310" as="geometry"/>
+                </mxCell>
+                <mxCell id="58" value="SQL-Filter" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="257.5" y="660" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="59" value="&lt;b&gt;Search index&lt;/b&gt;&lt;br&gt;&lt;div&gt;tsvector: title + abstract&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="153.75" y="700" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="60" value="&lt;b&gt;Type&lt;/b&gt;&lt;div&gt;article&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="326.25" y="700" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="61" value="&lt;b&gt;Exclusion&lt;/b&gt;&lt;div&gt;paratext, retracted&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="153.75" y="770" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="62" value="&lt;b style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251);&quot;&gt;Language&lt;/b&gt;&lt;div style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251);&quot;&gt;en, eng, de, deu&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="326.25" y="770" width="162.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="63" value="&lt;b&gt;Search terms&amp;nbsp;&lt;/b&gt;&lt;b style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251);&quot;&gt;(OR-combined)&lt;/b&gt;&lt;div&gt;&lt;div&gt;vector &amp;lt;-&amp;gt; database, vector &amp;lt;-&amp;gt; db, vektor &amp;lt;-&amp;gt; db,&amp;nbsp;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;vectordatabase, vectordb, vektordatenbank,&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;&amp;nbsp;vector &amp;lt;-&amp;gt; store, vector &amp;lt;-&amp;gt; index, vector &amp;lt;-&amp;gt; search,&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;embedding &amp;lt;-&amp;gt; database, embedding &amp;lt;-&amp;gt; store,&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;ann &amp;lt;-&amp;gt; search, approximate &amp;lt;-&amp;gt; nearest &amp;lt;-&amp;gt; neighbor&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="153.75" y="840" width="337.5" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="65" value="&lt;b&gt;CSV-Export&lt;/b&gt;&lt;div&gt;Work-IDs&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="153.75" y="360" width="337.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="66" value="&lt;b&gt;Python-Crawler&lt;/b&gt;&lt;div&gt;Find works in OpenAlex-Snapshot by id&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="152.5" y="450" width="157.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="67" value="&lt;b&gt;Python-Requester&lt;/b&gt;&lt;div&gt;Get missing works by OpenAlex-API&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="330" y="450" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="68" value="&lt;b&gt;Python-PDF-Downloader&lt;/b&gt;&lt;br&gt;&lt;div&gt;Download works in PDF format&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="158.75" y="1060" width="331.25" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="69" value="LLM: Ollama qwen3.8:27b" style="shape=datastore;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="287.5" y="1320" width="90" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="70" value="&lt;b&gt;Python-PDF-Text-Extractor&lt;/b&gt;&lt;br&gt;&lt;div&gt;Extract text from PDFs&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="1140" width="330" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="72" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="141.25" y="1450" width="360" height="260" as="geometry"/>
+                </mxCell>
+                <mxCell id="73" value="JSON-Metadata" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="257.5" y="1460" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="78" value="&lt;b&gt;main_problem&lt;/b&gt;&lt;div&gt;vector database, vectordatabase, vector-db, vector db, vectordb, vektordatenbank, vektor-db, vektor db&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="151.25" y="1490" width="337.5" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="79" value="&lt;b&gt;CSV-Export&lt;/b&gt;&lt;div&gt;Work-IDs&lt;/div&gt;&lt;div&gt;&lt;i&gt;not open access&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="329.38" y="980" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="80" value="&lt;b&gt;CSV-Export&lt;/b&gt;&lt;div&gt;Work-IDs&lt;/div&gt;&lt;div&gt;&lt;i&gt;open access&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="158.13" y="980" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="82" value="&lt;b&gt;LLM-Extractor&lt;/b&gt;&lt;br&gt;&lt;div&gt;Extract informations from text&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="161.88" y="1220" width="330" height="60" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
