@@ -15,10 +15,10 @@ def main():
     parser.add_argument("folder", help="Path to pdf folder to process")
     args = parser.parse_args()
 
-    pdf_folder = Path(args.folder)
-    pdf_folder.mkdir(parents=True, exist_ok=True)
+    PDF_FOLDER = Path(args.folder)
+    PDF_FOLDER.mkdir(parents=True, exist_ok=True)
 
-    pdf_files = sorted(pdf_folder.glob("*.pdf"))
+    pdf_files = sorted(PDF_FOLDER.glob("*.pdf"))
     print(f"{len(pdf_files)} PDF files found.")
 
     succeeded = 0
@@ -26,7 +26,7 @@ def main():
 
     max_signs = 0
     for i, pdf_path in enumerate(pdf_files, start=1):
-        txt_path = pdf_folder / "text" / f"{pdf_path.stem}.txt"
+        txt_path = PDF_FOLDER / "text" / f"{pdf_path.stem}.txt"
 
         if txt_path.exists():
             print(
