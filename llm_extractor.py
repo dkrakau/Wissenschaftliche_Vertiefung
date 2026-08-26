@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "qwen3.8:27b"
 NUM_CTX = 65536
-MAX_CHARS = 250_000
+MAX_CHARS = 302_000
 REQUEST_TIMEOUT = 300
 TEXT_DIR = Path("pdf/open_access/text")
 TEXT_DIR.mkdir(exist_ok=True)
